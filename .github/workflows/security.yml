@@ -17,10 +17,18 @@ permissions: {}
 
 jobs:
   cargo-deny:
-    name: cargo-deny (advisories · licenses · sources)
+    name: cargo-deny (${{ matrix.checks }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        checks:
+          - advisories
+          - "bans licenses sources"
+    # Sudden advisory-db parse/sync issues should not hard-block the pipeline.
+    continue-on-error: ${{ matrix.checks == 'advisories' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -28,7 +36,7 @@ jobs:
 
       - uses: EmbarkStudios/cargo-deny-action@34899fc7ba81ca6268d5947a7a16b4649013fea1 # v2.0.11
         with:
-          command: check
+          command: check ${{ matrix.checks }}
           rust-version: stable
 
   cargo-audit:
@@ -68,6 +76,9 @@ jobs:
       actions: read
       contents: read
       security-events: write
+    env:
+      # Rust CodeQL support is still experimental.
+      CODEQL_ENABLE_EXPERIMENTAL_FEATURES: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,16 +96,21 @@ jobs:
         uses: github/codeql-action/analyze@1b549b9259bda1cb5ddde3b41741a82a2d15a841 # v3.28.13
         with:
           category: "/language:rust"
+          # Code scanning is not enabled on this repo yet; still run analysis locally in CI.
+          upload: never
 
   zizmor:
     name: zizmor
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        with:
+          # Avoid SARIF upload until GitHub code scanning is enabled in repo settings.
+          advanced-security: false
+          annotations: true

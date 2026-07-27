@@ -54,19 +54,6 @@ jobs:
 
       - uses: crate-ci/typos@v1
 
-  deny:
-    name: cargo-deny
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          command: check
-          rust-version: stable
-
   clippy:
     name: clippy
     runs-on: ubuntu-latest

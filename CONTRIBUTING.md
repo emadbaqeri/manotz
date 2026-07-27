@@ -21,7 +21,7 @@ cargo run
 
 - **TDD for core logic:** add or update a failing test, then implement the minimal fix. Tests assert behavior through public APIs, not private internals.
 - **Pure cores first:** editor logic stays free of terminal I/O so it stays unit-testable. Put crossterm / filesystem code behind adapters.
-- **One concern per PR:** prefer a vertical slice or a single bugfix over mixed refactors.
+- **One concern per PR:** prefer a vertical slice or a single bug fix over mixed refactors.
 - **Style:** run `cargo fmt` and `cargo clippy --all-targets -- -D warnings` before pushing. CI enforces the same.
 
 ## Pull requests
@@ -30,24 +30,59 @@ cargo run
 2. Make your change with tests.
 3. Open a PR with a short summary and how you tested it.
 4. Keep the PR focused; link related issues.
+5. PR titles should also follow the Conventional Commits format below when practical.
 
-### Commit and PR wording
+## Commit messages
 
-Write for someone who has never seen this repo:
+We follow **[Conventional Commits](https://www.conventionalcommits.org/)** as enforced by
+[`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-conventional)
+(see also the [commitlint rules](https://commitlint.js.org/reference/rules.html)).
 
-- Prefer plain descriptions of **what changed and why** (e.g. “Allow the cursor past the last character so insert works at end of line”).
-- Avoid internal shorthand (`M5`, “milestone 3”, ticket slang) unless the full phrase is also spelled out.
-- PR titles and bodies should make sense on their own without reading the roadmap first.
+### Format
+
+```text
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Rules that matter here
+
+- **type** (required): one of `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`
+- **scope** (optional): lowercase area of the code, e.g. `feat(editor): …`, `fix(history): …`
+- **description**: imperative, lowercase, no trailing period — readable without project jargon
+- **header**: keep under 100 characters
+- **body / footer**: optional; separate from the header with a blank line
+- **breaking change**: add `!` after type/scope (`feat(api)!: …`) and/or a `BREAKING CHANGE:` footer
+
+### Examples
+
+```text
+feat(text): add grapheme and display-width helpers
+
+fix(editor): allow cursor past last character for end inserts
+
+docs: add security policy for private vulnerability reports
+
+ci: add format, lint, and test workflow
+
+refactor(history): use question-mark operator in undo redo
+```
 
 ### Atomic commits
 
 Keep commits **atomic**: one logical change per commit.
 
-- Do: “Add undo/redo keybindings in normal mode” as its own commit; “Add MIT license and README” as another.
-- Don’t: mix unrelated edits (feature + formatting + docs + refactor) in one commit.
-- Each commit should leave the tree buildable (`cargo test` / CI green) when practical.
-- Commit subject: imperative, ~50 characters when you can; optional body for *why*.
-- Prefer several small commits (or a PR made of small commits) over one large “everything” commit.
+- Do: `feat(input): map u and U to undo and redo` as its own commit
+- Don’t: mix unrelated feature, docs, and refactor work in one commit
+- Each commit should leave the tree buildable (`cargo test` / CI green) when practical
+- Prefer several small commits (or a PR made of small commits) over one large “everything” commit
+
+Write for someone who has never seen this repo: plain language, no bare milestone shorthand.
+
+CI validates commit messages on pull requests with commitlint.
 
 ## Code of Conduct
 

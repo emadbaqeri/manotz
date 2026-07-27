@@ -44,6 +44,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Install cargo-audit against stable; the repo MSRV (1.88) is too old
+      # to compile current cargo-audit from source.
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
       - uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

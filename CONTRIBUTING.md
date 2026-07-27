@@ -4,9 +4,10 @@ Thanks for your interest in contributing. The project is early; small, focused c
 
 ## Before you start
 
-1. Read the product vision in [issue #1](https://github.com/emadbaqeri/manotz/issues/1).
-2. Prefer opening an issue for design discussion before large work.
-3. Keep mentor/private notes (`CONTEXT.md`, local agent files) out of PRs — they are gitignored on purpose.
+1. Skim [ROADMAP.md](ROADMAP.md) for what is done and what is next.
+2. Read the product vision in [issue #1](https://github.com/emadbaqeri/manotz/issues/1) for background decisions.
+3. Prefer opening an issue for design discussion before large work.
+4. Keep mentor/private notes (`CONTEXT.md`, local agent files) out of PRs — they are gitignored on purpose.
 
 ## Development setup
 
@@ -22,7 +23,7 @@ cargo run
 - **TDD for core logic:** add or update a failing test, then implement the minimal fix. Tests assert behavior through public APIs, not private internals.
 - **Pure cores first:** editor logic stays free of terminal I/O so it stays unit-testable. Put crossterm / filesystem code behind adapters.
 - **One concern per PR:** prefer a vertical slice or a single bug fix over mixed refactors.
-- **Style:** run `cargo fmt --all --check` and `cargo clippy --locked --all-targets -- -D warnings` before pushing. CI enforces formatting, clippy, tests (Linux + macOS), MSRV, docs, typos, `cargo-deny`, and commitlint.
+- **Style:** run `cargo fmt --all --check` and `cargo clippy --locked --all-targets -- -D warnings` before pushing. CI covers formatting, clippy, tests (Linux + macOS), MSRV, docs, typos, and commitlint. The [security workflow](.github/workflows/security.yml) runs `cargo-deny`, `cargo-audit`, CodeQL, dependency review (PRs), and zizmor.
 
 ## Pull requests
 

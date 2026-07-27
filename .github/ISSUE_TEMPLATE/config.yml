@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Product vision / PRD
+    url: https://github.com/emadbaqeri/manotz/issues/1
+    about: Long-form product background and decisions
+  - name: Roadmap
+    url: https://github.com/emadbaqeri/manotz/blob/master/ROADMAP.md
+    about: Track what is done and what is planned

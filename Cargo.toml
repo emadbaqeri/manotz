@@ -2,6 +2,15 @@
 name = "manotz"
 version = "0.1.0"
 edition = "2024"
+description = "Terminal-first knowledge management editor with Helix-style selection-first editing"
+license = "MIT"
+repository = "https://github.com/emadbaqeri/manotz"
+homepage = "https://github.com/emadbaqeri/manotz"
+readme = "README.md"
+authors = ["Emad Baqeri <emad.m.baqeri@gmail.com>"]
+keywords = ["editor", "terminal", "tui", "markdown", "helix"]
+categories = ["command-line-utilities", "text-editors"]
+rust-version = "1.85"
 
 [dependencies]
 unicode-segmentation = "1.13.3"

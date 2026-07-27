@@ -14,16 +14,21 @@ Thanks for your interest in contributing. The project is early; small, focused c
 ```bash
 git clone https://github.com/emadbaqeri/manotz.git
 cd manotz
-cargo test
+cargo test --locked
 cargo run
 ```
 
+[`rustup`](https://rustup.rs) will pick up [`rust-toolchain.toml`](rust-toolchain.toml)
+(currently **1.88.0**). We commit to that toolchain in CI — nothing more, nothing less, no nightly.
+
+Editor defaults live in [`.editorconfig`](.editorconfig); `cargo fmt` (see
+[`.rustfmt.toml`](.rustfmt.toml)) is the source of truth and CI enforces it.
 ## How we work
 
 - **TDD for core logic:** add or update a failing test, then implement the minimal fix. Tests assert behavior through public APIs, not private internals.
 - **Pure cores first:** editor logic stays free of terminal I/O so it stays unit-testable. Put crossterm / filesystem code behind adapters.
 - **One concern per PR:** prefer a vertical slice or a single bug fix over mixed refactors.
-- **Style:** run `cargo fmt --all --check` and `cargo clippy --locked --all-targets -- -D warnings` before pushing. CI covers formatting, clippy, tests (Linux + macOS), MSRV, docs, typos, and commitlint. The [security workflow](.github/workflows/security.yml) runs `cargo-deny`, `cargo-audit`, CodeQL, and dependency review on PRs.
+- **Style:** run `cargo fmt --all -- --check` and `cargo clippy --locked --all-targets -- -D warnings` before pushing. The [Rust workflow](.github/workflows/rust.yml) covers format, clippy, check, tests (Linux + macOS), docs, typos, and commitlint. The [Security workflow](.github/workflows/security.yml) runs `cargo-deny`, `cargo-audit`, CodeQL, and dependency review on PRs.
 
 ## Pull requests
 

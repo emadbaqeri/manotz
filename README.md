@@ -1,27 +1,31 @@
-<div align="center">
+<p align="center">
+  <h1 align="center">manotz</h1>
+  <p align="center"><em>terminal-first knowledge management</em></p>
+</p>
 
-# manotz
+<p align="center">
+  Helix/Kakoune-style selection-first editing meets an Obsidian-compatible
+  markdown vault — written in Rust.
+</p>
 
-**Terminal-first knowledge management** — Helix/Kakoune-style selection-first
-editing meets an Obsidian-compatible markdown vault, all in Rust.
+<p align="center">
+  <a href="https://github.com/emadbaqeri/manotz/actions/workflows/rust.yml"><img src="https://img.shields.io/github/actions/workflow/status/emadbaqeri/manotz/rust.yml?style=flat-square&label=Rust" alt="Rust CI" /></a>
+  <a href="https://github.com/emadbaqeri/manotz/actions/workflows/security.yml"><img src="https://img.shields.io/github/actions/workflow/status/emadbaqeri/manotz/security.yml?style=flat-square&label=Security" alt="Security" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
+  <a href="rust-toolchain.toml"><img src="https://img.shields.io/badge/rust-1.88.0-orange.svg?style=flat-square" alt="Rust 1.88.0" /></a>
+  <a href="https://doc.rust-lang.org/edition-guide/"><img src="https://img.shields.io/badge/edition-2024-black.svg?style=flat-square" alt="Edition 2024" /></a>
+</p>
 
-[![CI](https://github.com/emadbaqeri/manotz/actions/workflows/ci.yml/badge.svg)](https://github.com/emadbaqeri/manotz/actions/workflows/ci.yml)
-[![Security](https://github.com/emadbaqeri/manotz/actions/workflows/security.yml/badge.svg)](https://github.com/emadbaqeri/manotz/actions/workflows/security.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
-[![Edition](https://img.shields.io/badge/edition-2024-black.svg)](https://doc.rust-lang.org/edition-guide/)
-
-</div>
+---
 
 ## About
 
-`manotz` aims to keep writers in the terminal with a powerful modal editor **and**
-a knowledge layer: `[[wikilinks]]`, tags, backlinks, fuzzy navigation, and vault
+`manotz` keeps writers in the terminal with a powerful modal editor **and** a
+knowledge layer: `[[wikilinks]]`, tags, backlinks, fuzzy navigation, and vault
 search — without shelling out to `$EDITOR` or leaving for a GUI.
 
-**Status:** early / pre-1.0. The modal editor core (text, buffer, selections,
-render, modes, undo/redo) works today. Vault and knowledge features are on the
-[roadmap](ROADMAP.md).
+**Status:** early / pre-1.0. The modal editor core works today. Vault features
+are tracked in [ROADMAP.md](ROADMAP.md).
 
 ## Features
 
@@ -34,16 +38,19 @@ render, modes, undo/redo) works today. Vault and knowledge features are on the
 - Branching undo tree with merge-window for consecutive inserts (`u` / `U`)
 - Viewport that follows the cursor on all edges
 
-**Coming next** (see [ROADMAP.md](ROADMAP.md))
+**Coming next** — see [ROADMAP.md](ROADMAP.md)
 
 - Select mode and select-then-act editing
 - Open / save files
 - Markdown highlighting, vault indexes, wikilinks, backlinks, search
 
-## Requirements
+## Supported platforms
 
-- **Rust** 1.88 or newer (`rust-version` in `Cargo.toml`)
-- **macOS** or **Linux** (Windows support deferred for v1)
+| Platform | Status |
+| --- | --- |
+| macOS | supported |
+| Linux | supported |
+| Windows | deferred for v1 |
 
 ## Quick start
 
@@ -52,6 +59,9 @@ git clone https://github.com/emadbaqeri/manotz.git
 cd manotz
 cargo run
 ```
+
+Requires the toolchain in [`rust-toolchain.toml`](rust-toolchain.toml) (Rust **1.88.0**).
+[`rustup`](https://rustup.rs) will install it automatically.
 
 ### Keybindings
 
@@ -68,41 +78,37 @@ cargo run
 
 ```bash
 cargo test --locked
-cargo fmt --all --check
+cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo deny check
 ```
 
-CI also runs typos, docs (`-D warnings`), MSRV, commitlint, and the
-[security workflow](.github/workflows/security.yml).
-
 ## Project layout
 
-| Module | Role |
+| Path | Role |
 | --- | --- |
-| [`text`](src/text) | Grapheme / display-width helpers |
-| [`buffer`](src/buffer) | `Buffer` trait + gap buffer |
-| [`selection`](src/selection) | Selections + selection set |
-| [`command`](src/command) | Motions, edits, transactions |
-| [`history`](src/history) | Undo tree + merge window |
-| [`render`](src/render) | Pure grid + crossterm adapter |
-| [`input`](src/input) | Modes + keymap |
-| [`editor`](src/editor) | `EditorState` + `update` |
+| [`src/text`](src/text) | Grapheme / display-width helpers |
+| [`src/buffer`](src/buffer) | `Buffer` trait + gap buffer |
+| [`src/selection`](src/selection) | Selections + selection set |
+| [`src/command`](src/command) | Motions, edits, transactions |
+| [`src/history`](src/history) | Undo tree + merge window |
+| [`src/render`](src/render) | Pure grid + crossterm adapter |
+| [`src/input`](src/input) | Modes + keymap |
+| [`src/editor`](src/editor) | `EditorState` + `update` |
+| [`ROADMAP.md`](ROADMAP.md) | Progress checklist |
+| [`.github/workflows`](.github/workflows) | Rust + Security CI |
 
-## Roadmap
+## Documentation
 
-Track progress in **[ROADMAP.md](ROADMAP.md)**. Product background and decisions
-live in [issue #1](https://github.com/emadbaqeri/manotz/issues/1).
+- [Roadmap](ROADMAP.md) — what is done and what is next
+- [Contributing](CONTRIBUTING.md) — how to develop and open PRs
+- [Security policy](SECURITY.md) — private vulnerability reports
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Product vision (issue #1)](https://github.com/emadbaqeri/manotz/issues/1)
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and
-follow the [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## Security
-
-Please report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
-Dependency and workflow checks run in CI via [security.yml](.github/workflows/security.yml).
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

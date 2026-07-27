@@ -86,11 +86,8 @@ impl History {
 
     pub fn undo(&mut self, buffer: &mut GapBuffer) -> Option<SelectionSet> {
         let idx = self.current;
-        if let Some(tx) = self.nodes[idx].transaction.as_ref() {
-            tx.unapply(buffer);
-        } else {
-            return None;
-        }
+        let tx = self.nodes[idx].transaction.as_ref()?;
+        tx.unapply(buffer);
 
         let restored = self.nodes[idx].prior_selections.clone();
         self.current = self.nodes[idx].parent.expect("undo at root");
@@ -102,12 +99,9 @@ impl History {
         let child_idx = *self.nodes[idx].children.last()?;
         self.current = child_idx;
 
-        if let Some(tx) = self.nodes[child_idx].transaction.as_ref() {
-            tx.apply(buffer);
-            Some(tx.new_selections().clone())
-        } else {
-            None
-        }
+        let tx = self.nodes[child_idx].transaction.as_ref()?;
+        tx.apply(buffer);
+        Some(tx.new_selections().clone())
     }
 }
 

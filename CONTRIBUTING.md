@@ -23,7 +23,7 @@ cargo run
 - **TDD for core logic:** add or update a failing test, then implement the minimal fix. Tests assert behavior through public APIs, not private internals.
 - **Pure cores first:** editor logic stays free of terminal I/O so it stays unit-testable. Put crossterm / filesystem code behind adapters.
 - **One concern per PR:** prefer a vertical slice or a single bug fix over mixed refactors.
-- **Style:** run `cargo fmt --all --check` and `cargo clippy --locked --all-targets -- -D warnings` before pushing. CI covers formatting, clippy, tests (Linux + macOS), MSRV, docs, typos, and commitlint. The [security workflow](.github/workflows/security.yml) runs `cargo-deny`, `cargo-audit`, CodeQL, dependency review (PRs), and zizmor.
+- **Style:** run `cargo fmt --all --check` and `cargo clippy --locked --all-targets -- -D warnings` before pushing. CI covers formatting, clippy, tests (Linux + macOS), MSRV, docs, typos, and commitlint. The [security workflow](.github/workflows/security.yml) runs `cargo-deny`, `cargo-audit`, CodeQL, and dependency review on PRs.
 
 ## Pull requests
 

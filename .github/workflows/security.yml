@@ -98,19 +98,3 @@ jobs:
           category: "/language:rust"
           # Code scanning is not enabled on this repo yet; still run analysis locally in CI.
           upload: never
-
-  zizmor:
-    name: zizmor
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
-        with:
-          # Avoid SARIF upload until GitHub code scanning is enabled in repo settings.
-          advanced-security: false
-          annotations: true

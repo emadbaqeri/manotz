@@ -16,8 +16,8 @@ Helix/Kakoune-style **selection-first** modal editing plus an Obsidian-compatibl
 
 ## Requirements
 
-- Rust **stable** (edition 2024 — use a recent toolchain)
 - macOS or Linux (Windows deferred for v1)
+- Rust **1.88+** (see `rust-version` in `Cargo.toml`)
 
 ## Build & run
 

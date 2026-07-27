@@ -130,8 +130,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # Keep in sync with `rust-version` in Cargo.toml (edition 2024 floor).
-      - uses: dtolnay/rust-toolchain@1.85.0
+      # Keep in sync with `rust-version` in Cargo.toml (let-chains need 1.88+).
+      - uses: dtolnay/rust-toolchain@1.88.0
 
       - uses: Swatinem/rust-cache@v2
 

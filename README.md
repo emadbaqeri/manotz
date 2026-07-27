@@ -1,32 +1,62 @@
+<div align="center">
+
 # manotz
 
-Terminal-first knowledge management editor in Rust.
+**Terminal-first knowledge management** — Helix/Kakoune-style selection-first
+editing meets an Obsidian-compatible markdown vault, all in Rust.
 
-Helix/Kakoune-style **selection-first** modal editing plus an Obsidian-compatible markdown vault (wikilinks, tags, backlinks, search) — all in the terminal. Full product vision lives in [issue #1](https://github.com/emadbaqeri/manotz/issues/1).
+[![CI](https://github.com/emadbaqeri/manotz/actions/workflows/ci.yml/badge.svg)](https://github.com/emadbaqeri/manotz/actions/workflows/ci.yml)
+[![Security](https://github.com/emadbaqeri/manotz/actions/workflows/security.yml/badge.svg)](https://github.com/emadbaqeri/manotz/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
+[![Edition](https://img.shields.io/badge/edition-2024-black.svg)](https://doc.rust-lang.org/edition-guide/)
 
-> **Status:** early / pre-1.0. The modal editor core through undo/redo (milestones M1–M5) is in place. Vault and knowledge-layer features are not shipped yet.
+</div>
 
-## Features (today)
+## About
 
-- Gap-buffer text storage behind a `Buffer` trait
-- Grapheme-aware cursor / insert / backspace
-- Normal + Insert modes
+`manotz` aims to keep writers in the terminal with a powerful modal editor **and**
+a knowledge layer: `[[wikilinks]]`, tags, backlinks, fuzzy navigation, and vault
+search — without shelling out to `$EDITOR` or leaving for a GUI.
+
+**Status:** early / pre-1.0. The modal editor core (text, buffer, selections,
+render, modes, undo/redo) works today. Vault and knowledge features are on the
+[roadmap](ROADMAP.md).
+
+## Features
+
+**Available now**
+
+- Gap-buffer text storage behind a swappable `Buffer` trait
+- Grapheme-aware cursor, insert, and backspace
+- Normal and Insert modes with a mode-aware keymap
 - Pure render core + crossterm adapter (diffed cell grid)
-- Undo tree with merge-window for consecutive inserts (`u` / `U`)
+- Branching undo tree with merge-window for consecutive inserts (`u` / `U`)
+- Viewport that follows the cursor on all edges
+
+**Coming next** (see [ROADMAP.md](ROADMAP.md))
+
+- Select mode and select-then-act editing
+- Open / save files
+- Markdown highlighting, vault indexes, wikilinks, backlinks, search
 
 ## Requirements
 
-- macOS or Linux (Windows deferred for v1)
-- Rust **1.88+** (see `rust-version` in `Cargo.toml`)
+- **Rust** 1.88 or newer (`rust-version` in `Cargo.toml`)
+- **macOS** or **Linux** (Windows support deferred for v1)
 
-## Build & run
+## Quick start
 
 ```bash
+git clone https://github.com/emadbaqeri/manotz.git
+cd manotz
 cargo run
 ```
 
+### Keybindings
+
 | Key | Mode | Action |
-|---|---|---|
+| --- | --- | --- |
 | `i` | Normal | Enter Insert |
 | `Esc` | Insert | Enter Normal |
 | arrows | both | Move |
@@ -34,36 +64,45 @@ cargo run
 | `u` / `U` | Normal | Undo / Redo |
 | `q` | Normal | Quit |
 
+### Development checks
+
 ```bash
-cargo test
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
+cargo test --locked
+cargo fmt --all --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo deny check
 ```
+
+CI also runs typos, docs (`-D warnings`), MSRV, commitlint, and the
+[security workflow](.github/workflows/security.yml).
 
 ## Project layout
 
 | Module | Role |
-|---|---|
-| `text` | Grapheme / display-width helpers |
-| `buffer` | `Buffer` trait + gap buffer |
-| `selection` | Selections + selection set |
-| `command` | Motions, edits, transactions |
-| `history` | Undo tree + merge window |
-| `render` | Pure grid + crossterm adapter |
-| `input` | Modes + keymap |
-| `editor` | `EditorState` + `update` |
+| --- | --- |
+| [`text`](src/text) | Grapheme / display-width helpers |
+| [`buffer`](src/buffer) | `Buffer` trait + gap buffer |
+| [`selection`](src/selection) | Selections + selection set |
+| [`command`](src/command) | Motions, edits, transactions |
+| [`history`](src/history) | Undo tree + merge window |
+| [`render`](src/render) | Pure grid + crossterm adapter |
+| [`input`](src/input) | Modes + keymap |
+| [`editor`](src/editor) | `EditorState` + `update` |
 
 ## Roadmap
 
-See the suggested build order in [issue #1](https://github.com/emadbaqeri/manotz/issues/1) (M6 markdown → vault → links → compositor → search → watch → config).
+Track progress in **[ROADMAP.md](ROADMAP.md)**. Product background and decisions
+live in [issue #1](https://github.com/emadbaqeri/manotz/issues/1).
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and
+follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
+Please report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
+Dependency and workflow checks run in CI via [security.yml](.github/workflows/security.yml).
 
 ## License
 

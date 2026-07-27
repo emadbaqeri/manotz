@@ -1,1 +1,12 @@
+# Rust / Cargo
 /target
+**/*.rs.bk
+
+# Local mentor / private notes (not for the public repo)
+CONTEXT.md
+
+# Editor / OS junk
+.DS_Store
+*.swp
+*.swo
+*~

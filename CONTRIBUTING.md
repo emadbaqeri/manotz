@@ -82,7 +82,7 @@ Keep commits **atomic**: one logical change per commit.
 
 Write for someone who has never seen this repo: plain language, no bare milestone shorthand.
 
-CI validates commit messages on pull requests with commitlint.
+CI validates commit messages on pushes and pull requests with commitlint.
 
 ## Code of Conduct
 

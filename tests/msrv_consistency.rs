@@ -30,10 +30,10 @@ fn extract_quoted_value(text: &str, key: &str) -> Option<String> {
             let rest = rest.trim_start();
             if let Some(rest) = rest.strip_prefix('=') {
                 let rest = rest.trim();
-                if let Some(rest) = rest.strip_prefix('"') {
-                    if let Some(end) = rest.find('"') {
-                        return Some(rest[..end].to_string());
-                    }
+                if let Some(rest) = rest.strip_prefix('"')
+                    && let Some(end) = rest.find('"')
+                {
+                    return Some(rest[..end].to_string());
                 }
             }
         }
@@ -77,8 +77,8 @@ fn rust_toolchain_toml_declares_required_components() {
 #[test]
 fn clippy_toml_msrv_matches_expected_msrv() {
     let clippy_toml = read("clippy.toml");
-    let msrv = extract_quoted_value(&clippy_toml, "msrv")
-        .expect("clippy.toml must declare an `msrv` key");
+    let msrv =
+        extract_quoted_value(&clippy_toml, "msrv").expect("clippy.toml must declare an `msrv` key");
     assert_eq!(
         msrv, EXPECTED_MSRV,
         "clippy.toml `msrv` should match the project MSRV"
@@ -125,7 +125,10 @@ fn workflow_pins_expected_toolchain_in_every_job() {
 
     // Every `toolchain:` line in the workflow must use the same version;
     // otherwise CI jobs would silently run against mismatched toolchains.
-    for line in workflow.lines().filter(|l| l.trim_start().starts_with("toolchain:")) {
+    for line in workflow
+        .lines()
+        .filter(|l| l.trim_start().starts_with("toolchain:"))
+    {
         assert!(
             line.contains(EXPECTED_MSRV),
             "found a toolchain pin that does not match the expected MSRV: {line}"

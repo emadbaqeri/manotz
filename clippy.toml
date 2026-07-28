@@ -1,2 +1,2 @@
 # Keep Clippy aligned with the declared MSRV.
-msrv = "1.88.0"
+msrv = "1.97.1"

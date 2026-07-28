@@ -10,7 +10,7 @@ readme = "README.md"
 authors = ["Emad Baqeri <emad.m.baqeri@gmail.com>"]
 keywords = ["editor", "terminal", "tui", "markdown", "helix"]
 categories = ["command-line-utilities", "text-editors"]
-rust-version = "1.88"
+rust-version = "1.97.1"
 
 [dependencies]
 unicode-segmentation = "1.13.3"

@@ -12,7 +12,7 @@
   <a href="https://github.com/emadbaqeri/manotz/actions/workflows/rust.yml"><img src="https://img.shields.io/github/actions/workflow/status/emadbaqeri/manotz/rust.yml?style=flat-square&label=Rust" alt="Rust CI" /></a>
   <a href="https://github.com/emadbaqeri/manotz/actions/workflows/security.yml"><img src="https://img.shields.io/github/actions/workflow/status/emadbaqeri/manotz/security.yml?style=flat-square&label=Security" alt="Security" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
-  <a href="rust-toolchain.toml"><img src="https://img.shields.io/badge/rust-1.88.0-orange.svg?style=flat-square" alt="Rust 1.88.0" /></a>
+  <a href="rust-toolchain.toml"><img src="https://img.shields.io/badge/rust-1.97.1-orange.svg?style=flat-square" alt="Rust 1.97.1" /></a>
   <a href="https://doc.rust-lang.org/edition-guide/"><img src="https://img.shields.io/badge/edition-2024-black.svg?style=flat-square" alt="Edition 2024" /></a>
 </p>
 
@@ -60,7 +60,7 @@ cd manotz
 cargo run
 ```
 
-Requires the toolchain in [`rust-toolchain.toml`](rust-toolchain.toml) (Rust **1.88.0**).
+Requires the toolchain in [`rust-toolchain.toml`](rust-toolchain.toml) (Rust **1.97.1**).
 [`rustup`](https://rustup.rs) will install it automatically.
 
 ### Keybindings

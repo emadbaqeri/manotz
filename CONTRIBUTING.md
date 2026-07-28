@@ -19,7 +19,7 @@ cargo run
 ```
 
 [`rustup`](https://rustup.rs) will pick up [`rust-toolchain.toml`](rust-toolchain.toml)
-(currently **1.88.0**). We commit to that toolchain in CI — nothing more, nothing less, no nightly.
+(currently **1.97.1**). We commit to that toolchain in CI — nothing more, nothing less, no nightly.
 
 Editor defaults live in [`.editorconfig`](.editorconfig); `cargo fmt` (see
 [`.rustfmt.toml`](.rustfmt.toml)) is the source of truth and CI enforces it.

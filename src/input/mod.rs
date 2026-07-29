@@ -13,12 +13,18 @@ pub enum Action {
     Undo,
     Redo,
     Quit, // 'q' or Ctrl+C
+    EnterSelect,
+    Delete,
+    Change,
+    Yank,
+    Paste,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mode {
     Normal,
     Insert,
+    Select,
 }
 
 impl Action {
@@ -27,12 +33,17 @@ impl Action {
             Mode::Normal => match key.code {
                 KeyCode::Left => Some(Action::MoveLeft),
                 KeyCode::Right => Some(Action::MoveRight),
-                KeyCode::Char('q') => Some(Action::Quit),
-                KeyCode::Char('i') => Some(Action::EnterInsert),
                 KeyCode::Up => Some(Action::MoveUp),
                 KeyCode::Down => Some(Action::MoveDown),
+                KeyCode::Char('q') => Some(Action::Quit),
+                KeyCode::Char('i') => Some(Action::EnterInsert),
                 KeyCode::Char('u') => Some(Action::Undo),
                 KeyCode::Char('U') => Some(Action::Redo),
+                KeyCode::Char('v') => Some(Action::EnterSelect),
+                KeyCode::Char('y') => Some(Action::Yank),
+                KeyCode::Char('d') => Some(Action::Delete),
+                KeyCode::Char('c') => Some(Action::Change),
+                KeyCode::Char('p') => Some(Action::Paste),
                 _ => None,
             },
             Mode::Insert => match key.code {
@@ -44,6 +55,19 @@ impl Action {
                 KeyCode::Char(ch) => Some(Action::InsertChar(ch)),
                 KeyCode::Backspace => Some(Action::Backspace),
                 KeyCode::Enter => Some(Action::InsertChar('\n')),
+                _ => None,
+            },
+            Mode::Select => match key.code {
+                KeyCode::Esc | KeyCode::Char('v') => Some(Action::EnterNormal),
+                KeyCode::Left => Some(Action::MoveLeft),
+                KeyCode::Right => Some(Action::MoveRight),
+                KeyCode::Up => Some(Action::MoveUp),
+                KeyCode::Down => Some(Action::MoveDown),
+                KeyCode::Char('y') => Some(Action::Yank),
+                KeyCode::Char('d') => Some(Action::Delete),
+                KeyCode::Char('c') => Some(Action::Change),
+                KeyCode::Char('p') => Some(Action::Paste),
+
                 _ => None,
             },
         }
@@ -206,5 +230,35 @@ mod tests {
             Action::map_key(key, Mode::Insert),
             Some(Action::InsertChar('U'))
         );
+    }
+
+    #[test]
+    fn map_key_v_enters_select_mode() {
+        let v_key = KeyEvent::new(KeyCode::Char('v'), NO_MODS);
+        assert_eq!(
+            Action::map_key(v_key, Mode::Normal),
+            Some(Action::EnterSelect)
+        );
+    }
+
+    #[test]
+    fn map_key_y_is_yank_in_normal_and_select() {
+        let key = KeyEvent::new(KeyCode::Char('y'), NO_MODS);
+        assert_eq!(Action::map_key(key, Mode::Normal), Some(Action::Yank));
+        assert_eq!(Action::map_key(key, Mode::Select), Some(Action::Yank));
+    }
+
+    #[test]
+    fn map_key_d_is_delete_in_normal_and_select() {
+        let key = KeyEvent::new(KeyCode::Char('d'), NO_MODS);
+        assert_eq!(Action::map_key(key, Mode::Normal), Some(Action::Delete));
+        assert_eq!(Action::map_key(key, Mode::Select), Some(Action::Delete));
+    }
+
+    #[test]
+    fn map_key_c_is_change_in_normal_and_select() {
+        let key = KeyEvent::new(KeyCode::Char('c'), NO_MODS);
+        assert_eq!(Action::map_key(key, Mode::Normal), Some(Action::Change));
+        assert_eq!(Action::map_key(key, Mode::Select), Some(Action::Change));
     }
 }

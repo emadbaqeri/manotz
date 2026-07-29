@@ -107,7 +107,11 @@ pub fn action_delete(selections: &SelectionSet, buf: &impl Buffer) -> Transactio
     let mut cursors = vec![];
     for selection in selections {
         let start = selection.anchor().min(selection.head());
-        let end = selection.anchor().max(selection.head()) + 1;
+        let end = if selection.is_empty() {
+            (start + 1).min(buf.len())
+        } else {
+            selection.anchor().max(selection.head())
+        };
         let old_text = buf.slice(start, end);
         edits.push(Edit::new(start, end, old_text, ""));
         cursors.push(Selection::cursor(start));
@@ -161,6 +165,32 @@ mod tests {
         let selections = SelectionSet::single(Selection::new(0, 4));
         let tx = action_delete(&selections, &buf);
         tx.apply(&mut buf);
-        assert_eq!(buf.slice(0, 6), " world");
+        assert_eq!(buf.slice(0, buf.len()), "o world");
+    }
+
+    #[test]
+    fn action_delete_point_cursor() {
+        let mut buffer = GapBuffer::new("hello world");
+        let selections = SelectionSet::single(Selection::cursor(0));
+        let tx = action_delete(&selections, &buffer);
+        tx.apply(&mut buffer);
+        assert_eq!(buffer.slice(0, buffer.len()), "ello world")
+    }
+
+    #[test]
+    fn action_delete_range_selection() {
+        let mut buffer = GapBuffer::new("hello world");
+        let selections = SelectionSet::single(Selection::new(0, 5));
+        let tx = action_delete(&selections, &buffer);
+        tx.apply(&mut buffer);
+        assert_eq!(buffer.slice(0, buffer.len()), " world");
+    }
+
+    #[test]
+    fn action_delete_at_eof_does_not_panic() {
+        let buf = GapBuffer::new("ABC");
+        let selections = SelectionSet::single(Selection::cursor(3)); // cursor at EOF
+        let tx = action_delete(&selections, &buf);
+        assert_eq!(tx.new_selections().primary().head(), 3);
     }
 }

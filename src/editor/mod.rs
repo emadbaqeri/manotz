@@ -1,6 +1,8 @@
 use crate::{
     buffer::{Buffer, GapBuffer},
-    command::{Edit, Transaction, motion_down, motion_left, motion_right, motion_up},
+    command::{
+        Edit, Transaction, action_delete, motion_down, motion_left, motion_right, motion_up,
+    },
     history::{History, MergeKey},
     input::{Action, Mode},
     render::{Viewport, byte_to_line_col},
@@ -14,10 +16,11 @@ pub struct EditorState {
     pub selections: SelectionSet,
     pub mode: Mode,
     pub history: History,
+    pub register: Option<String>,
 }
 
 impl EditorState {
-    pub fn new(text: &str, rows: usize, cols: usize) -> EditorState {
+    pub fn new(text: &str, rows: usize, cols: usize) -> Self {
         let buffer = GapBuffer::new(text);
         let viewport = Viewport::new(0, 0, rows, cols);
         let selections = SelectionSet::single(Selection::cursor(0));
@@ -28,11 +31,170 @@ impl EditorState {
             selections,
             mode: Mode::Normal,
             history: History::new(),
+            register: None,
         }
     }
 
     pub fn update(self, action: Action) -> Self {
         match action {
+            Action::Paste => {
+                let text = match &self.register {
+                    Some(text) if !text.is_empty() => text.clone(),
+                    _ => return self,
+                };
+
+                let head = self.selections.primary().head();
+                let mut buffer = self.buffer;
+                let mut history = self.history;
+                let prior_selections = self.selections.clone();
+
+                let new_head = head + text.len();
+                let new_selections = SelectionSet::single(Selection::cursor(new_head));
+
+                let tx = Transaction::new(
+                    vec![Edit::new(head, head, "", &text)],
+                    new_selections.clone(),
+                );
+
+                history.record(tx, &mut buffer, prior_selections, MergeKey::Other);
+
+                let buf_text = buffer.slice(0, buffer.len());
+                let (line, col) = byte_to_line_col(buf_text, new_head).unwrap_or((0, 0));
+
+                let right_edge = self.viewport.left() + self.viewport.cols();
+                let new_left = if col >= right_edge {
+                    col - self.viewport.cols() + 1
+                } else {
+                    self.viewport.left()
+                };
+
+                let bottom_edge = self.viewport.top() + self.viewport.rows();
+                let new_top = if line >= bottom_edge {
+                    line - self.viewport.rows() + 1
+                } else {
+                    self.viewport.top()
+                };
+
+                let new_viewport = Viewport::new(
+                    new_top,
+                    new_left,
+                    self.viewport.rows(),
+                    self.viewport.cols(),
+                );
+
+                EditorState {
+                    buffer,
+                    viewport: new_viewport,
+                    selections: new_selections,
+                    mode: Mode::Normal,
+                    history,
+                    register: self.register,
+                }
+            }
+            Action::Yank => {
+                let primary = self.selections.primary();
+                let (start, end) = if primary.is_empty() {
+                    (primary.head(), (primary.head() + 1).min(self.buffer.len()))
+                } else {
+                    (
+                        primary.anchor().min(primary.head()),
+                        primary.anchor().max(primary.head()),
+                    )
+                };
+
+                let yanked = self.buffer.slice(start, end).to_string();
+                let new_selections = SelectionSet::single(Selection::cursor(end));
+                EditorState {
+                    buffer: self.buffer,
+                    viewport: self.viewport,
+                    selections: new_selections,
+                    mode: Mode::Normal,
+                    history: self.history,
+                    register: Some(yanked),
+                }
+            }
+            Action::Change => {
+                let mut buffer = self.buffer;
+                let mut history = self.history;
+                let prior_selections = self.selections.clone();
+
+                let tx = action_delete(&prior_selections, &buffer);
+                let new_selections = tx.new_selections().clone();
+                history.record(tx, &mut buffer, prior_selections, MergeKey::Other);
+
+                let head = new_selections.primary().head();
+                let text = buffer.slice(0, buffer.len());
+                let (line, col) = byte_to_line_col(text, head).unwrap_or((0, 0));
+
+                let new_left = if col < self.viewport.left() {
+                    col
+                } else {
+                    self.viewport.left()
+                };
+
+                let new_top = if line < self.viewport.top() {
+                    line
+                } else {
+                    self.viewport.top()
+                };
+
+                let new_viewport = Viewport::new(
+                    new_top,
+                    new_left,
+                    self.viewport.rows(),
+                    self.viewport.cols(),
+                );
+
+                EditorState {
+                    buffer,
+                    viewport: new_viewport,
+                    selections: new_selections,
+                    mode: Mode::Insert,
+                    history,
+                    register: self.register,
+                }
+            }
+            Action::Delete => {
+                let mut buffer = self.buffer;
+                let mut history = self.history;
+                let prior_selections = self.selections.clone();
+
+                let tx = action_delete(&prior_selections, &buffer);
+                let new_selections = tx.new_selections().clone();
+                history.record(tx, &mut buffer, prior_selections, MergeKey::Other);
+
+                let head = new_selections.primary().head();
+                let text = buffer.slice(0, buffer.len());
+                let (line, col) = byte_to_line_col(text, head).unwrap_or((0, 0));
+
+                let new_left = if col < self.viewport.left() {
+                    col
+                } else {
+                    self.viewport.left()
+                };
+
+                let new_top = if line < self.viewport.top() {
+                    line
+                } else {
+                    self.viewport.top()
+                };
+
+                let new_viewport = Viewport::new(
+                    new_top,
+                    new_left,
+                    self.viewport.rows(),
+                    self.viewport.cols(),
+                );
+
+                EditorState {
+                    buffer,
+                    viewport: new_viewport,
+                    selections: new_selections,
+                    mode: Mode::Normal,
+                    history,
+                    register: self.register,
+                }
+            }
             Action::Redo => {
                 let mut buffer = self.buffer;
                 let mut history = self.history;
@@ -76,6 +238,7 @@ impl EditorState {
                             selections,
                             mode: self.mode,
                             history,
+                            register: self.register,
                         }
                     }
                     None => EditorState {
@@ -84,6 +247,7 @@ impl EditorState {
                         selections: self.selections,
                         mode: self.mode,
                         history,
+                        register: None,
                     },
                 }
             }
@@ -128,6 +292,7 @@ impl EditorState {
                             selections,
                             mode: self.mode,
                             history,
+                            register: self.register,
                         }
                     }
                     None => EditorState {
@@ -136,6 +301,7 @@ impl EditorState {
                         selections: self.selections,
                         mode: self.mode,
                         history,
+                        register: None,
                     },
                 }
             }
@@ -186,6 +352,7 @@ impl EditorState {
                     selections: new_selections,
                     mode: self.mode,
                     history,
+                    register: self.register,
                 }
             }
             Action::InsertChar(ch) => {
@@ -230,10 +397,11 @@ impl EditorState {
                     selections: new_selections,
                     mode: self.mode,
                     history,
+                    register: self.register,
                 }
             }
             Action::MoveLeft => {
-                let new_selections = motion_left(&self.selections);
+                let new_selections = motion_left(&self.selections, self.mode);
                 let head = new_selections.primary().head();
                 let text = self.buffer.slice(0, self.buffer.len());
                 let (_, col) = byte_to_line_col(text, head).unwrap();
@@ -256,10 +424,11 @@ impl EditorState {
                     selections: new_selections,
                     mode: self.mode,
                     history: self.history,
+                    register: self.register,
                 }
             }
             Action::MoveRight => {
-                let new_selections = motion_right(&self.selections, self.buffer.len());
+                let new_selections = motion_right(&self.selections, self.buffer.len(), self.mode);
                 let head = new_selections.primary().head();
                 let text = self.buffer.slice(0, self.buffer.len());
                 let (_, col) = byte_to_line_col(text, head).unwrap();
@@ -284,11 +453,12 @@ impl EditorState {
                     selections: new_selections,
                     mode: self.mode,
                     history: self.history,
+                    register: self.register,
                 }
             }
             Action::MoveUp => {
                 let text = self.buffer.slice(0, self.buffer.len());
-                let new_selections = motion_up(&self.selections, text);
+                let new_selections = motion_up(&self.selections, text, self.mode);
                 let head = new_selections.primary().head();
                 let (line, _) = byte_to_line_col(text, head).unwrap();
                 let new_top = if line < self.viewport.top() {
@@ -310,11 +480,12 @@ impl EditorState {
                     selections: new_selections,
                     mode: self.mode,
                     history: self.history,
+                    register: self.register,
                 }
             }
             Action::MoveDown => {
                 let text = self.buffer.slice(0, self.buffer.len());
-                let new_selections = motion_down(&self.selections, text);
+                let new_selections = motion_down(&self.selections, text, self.mode);
                 let head = new_selections.primary().head();
                 let (line, _) = byte_to_line_col(text, head).unwrap();
                 let bottom_edge = self.viewport.top() + self.viewport.rows();
@@ -337,6 +508,7 @@ impl EditorState {
                     selections: new_selections,
                     mode: self.mode,
                     history: self.history,
+                    register: self.register,
                 }
             }
             Action::EnterInsert => EditorState {
@@ -345,6 +517,7 @@ impl EditorState {
                 selections: self.selections,
                 mode: Mode::Insert,
                 history: self.history,
+                register: self.register,
             },
             Action::EnterNormal => EditorState {
                 buffer: self.buffer,
@@ -352,8 +525,17 @@ impl EditorState {
                 selections: self.selections,
                 mode: Mode::Normal,
                 history: self.history,
+                register: self.register,
             },
             Action::Quit => self,
+            Action::EnterSelect => EditorState {
+                buffer: self.buffer,
+                viewport: self.viewport,
+                selections: self.selections,
+                mode: Mode::Select,
+                history: self.history,
+                register: self.register,
+            },
         }
     }
 }
@@ -617,5 +799,106 @@ mod tests {
         let next = state.update(Action::Redo);
         assert_eq!(next.buffer.slice(0, next.buffer.len()), "XAB");
         assert_eq!(next.selections.primary().head(), 1);
+    }
+
+    #[test]
+    fn update_enter_select_sets_select_mode() {
+        let state = EditorState::new("ABC", 5, 5);
+        let next = state.update(Action::EnterSelect);
+        assert_eq!(next.mode, Mode::Select);
+    }
+
+    #[test]
+    fn update_move_right_in_select_mode_extends_selection() {
+        let state = EditorState::new("ABCDE", 5, 5);
+        let state = state.update(Action::EnterSelect);
+        let next = state.update(Action::MoveRight);
+
+        let primary = next.selections.primary();
+        assert_eq!(primary.anchor(), 0);
+        assert_eq!(primary.head(), 1);
+        assert_eq!(next.mode, Mode::Select);
+    }
+
+    #[test]
+    fn update_delete_in_select_mode_deletes_range_and_returns_to_normal() {
+        let state = EditorState::new("hello world", 5, 5);
+        let state = state.update(Action::EnterSelect);
+        let state = state.update(Action::MoveRight);
+        let state = state.update(Action::MoveRight);
+        let next = state.update(Action::Delete);
+
+        assert_eq!(next.buffer.slice(0, next.buffer.len()), "llo world");
+        assert_eq!(next.mode, Mode::Normal);
+        assert_eq!(next.selections.primary().head(), 0);
+    }
+
+    #[test]
+    fn update_change_in_select_mod_deletes_range_and_enters_insert() {
+        let state = EditorState::new("hello world", 5, 5);
+        let state = state.update(Action::EnterSelect);
+        let state = state.update(Action::MoveRight);
+        let state = state.update(Action::MoveRight);
+        let next = state.update(Action::Change);
+
+        assert_eq!(next.buffer.slice(0, next.buffer.len()), "llo world");
+        assert_eq!(next.mode, Mode::Insert);
+        assert_eq!(next.selections.primary().head(), 0);
+    }
+
+    #[test]
+    fn update_yank_copies_selected_text_to_register() {
+        let state = EditorState::new("hello world", 5, 5);
+        let mut state = state.update(Action::EnterSelect);
+        for _ in 0..5 {
+            state = state.update(Action::MoveRight);
+        }
+
+        let next = state.update(Action::Yank);
+
+        assert_eq!(next.register.as_deref(), Some("hello"));
+        assert_eq!(next.mode, Mode::Normal);
+        assert_eq!(next.buffer.slice(0, next.buffer.len()), "hello world");
+    }
+
+    #[test]
+    fn update_paste_inserts_register_text_and_records_in_history() {
+        let state = EditorState::new(" world", 5, 5);
+        let mut state = state;
+        state.register = Some("hello".to_string());
+
+        let next = state.update(Action::Paste);
+
+        assert_eq!(next.buffer.slice(0, next.buffer.len()), "hello world");
+        assert_eq!(next.selections.primary().head(), 5);
+        assert_eq!(next.mode, Mode::Normal);
+
+        let undone = next.update(Action::Undo);
+        assert_eq!(undone.buffer.slice(0, undone.buffer.len()), " world");
+    }
+
+    #[test]
+    fn update_yank_collapses_selection_to_point_cursor() {
+        let state = EditorState::new("hello world", 5, 5);
+        let mut state = state.update(Action::EnterSelect);
+        for _ in 0..5 {
+            state = state.update(Action::MoveRight);
+        }
+        let next = state.update(Action::Yank);
+
+        let primary = next.selections.primary();
+        assert!(primary.is_empty());
+        assert_eq!(primary.head(), 5);
+    }
+
+    #[test]
+    fn register_persists_across_motions_and_mode_changes() {
+        let state = EditorState::new("hello world", 5, 5);
+        let state = state.update(Action::EnterSelect);
+        let state = state.update(Action::MoveRight);
+        let state = state.update(Action::Yank);
+        let next = state.update(Action::MoveRight);
+
+        assert_eq!(next.register.as_deref(), Some("h"));
     }
 }

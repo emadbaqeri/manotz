@@ -30,8 +30,8 @@ This file is the living checklist for what is shipped and what comes next.
 
 | Status | Item |
 | --- | --- |
-| ⬜ | Select mode (extend selection with motions) |
-| ⬜ | Select-then-act delete / change / yank |
+| ✅ | Select mode (extend selection with motions) |
+| ✅ | Select-then-act delete / change / yank |
 | ⬜ | Multiple cursors as a first-class workflow |
 | ⬜ | Primary selection among many |
 | ⬜ | Multi-key chords (e.g. `g s`) |

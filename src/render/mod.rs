@@ -172,22 +172,43 @@ pub fn render(buff: &impl Buffer, selections: &SelectionSet, viewport: &Viewport
         }
     }
 
-    let primary_selection = selections.primary();
+    let selection_style = Style {
+        bg: Some(Colour::Rgb(40, 40, 80)),
+        fg: Some(Colour::Rgb(230, 230, 255)),
+        ..Style::default()
+    };
 
-    if let Some((line, col)) = byte_to_line_col(text, primary_selection.head()) {
-        let cursor_style = Style {
-            bg: Some(Colour::Rgb(80, 80, 80)),
-            fg: Some(Colour::Rgb(160, 160, 160)),
-            ..Style::default()
-        };
+    let cursor_style = Style {
+        bg: Some(Colour::Rgb(80, 80, 80)),
+        fg: Some(Colour::Rgb(160, 160, 160)),
+        ..Style::default()
+    };
 
-        if let (Some(viewport_row), Some(viewport_col)) = (
-            line.checked_sub(viewport.top()),
-            col.checked_sub(viewport.left()),
-        ) && viewport_row < viewport.rows()
-            && viewport_col < viewport.cols()
+    for selection in selections {
+        let start = selection.anchor().min(selection.head());
+        let end = selection.anchor().max(selection.head());
+        for byte in start..end {
+            if let Some((line, col)) = byte_to_line_col(text, byte)
+                && let (Some(r), Some(c)) = (
+                    line.checked_sub(viewport.top()),
+                    col.checked_sub(viewport.left()),
+                )
+                && r < viewport.rows()
+                && c < viewport.cols()
+            {
+                grid.set_style(r, c, selection_style.clone());
+            }
+        }
+
+        if let Some((line, col)) = byte_to_line_col(text, selection.head())
+            && let (Some(r), Some(c)) = (
+                line.checked_sub(viewport.top()),
+                col.checked_sub(viewport.left()),
+            )
+            && r < viewport.rows()
+            && c < viewport.cols()
         {
-            grid.set_style(viewport_row, viewport_col, cursor_style);
+            grid.set_style(r, c, cursor_style.clone());
         }
     }
 
@@ -487,5 +508,32 @@ mod tests {
         assert!(changes[0].0 == 1);
         assert!(changes[0].1 == 0);
         assert_eq!(changes[0].2.grapheme(), "X");
+    }
+
+    #[test]
+    fn render_selection_range_styles_range_cells() {
+        let buffer = GapBuffer::new("ABCDE");
+        // Selection from index 1 ('B') to 3 ('D')
+        let selections = SelectionSet::single(Selection::new(1, 3));
+        let viewport = Viewport::new(0, 0, 1, 5);
+        let grid = render(&buffer, &selections, &viewport);
+
+        // cell 0 ('A') has default bg
+        assert_eq!(grid.cell(0, 0).background(), None);
+
+        // cells 1 and 2 ('B', 'C') have selection range bg and fg
+        assert_eq!(grid.cell(0, 1).background(), Some(Colour::Rgb(40, 40, 80)));
+        assert_eq!(
+            grid.cell(0, 1).foreground(),
+            Some(Colour::Rgb(230, 230, 255))
+        );
+        assert_eq!(grid.cell(0, 2).background(), Some(Colour::Rgb(40, 40, 80)));
+        assert_eq!(
+            grid.cell(0, 2).foreground(),
+            Some(Colour::Rgb(230, 230, 255))
+        );
+
+        // cell 3 ('D', cursor head) has cursor bg
+        assert_eq!(grid.cell(0, 3).background(), Some(Colour::Rgb(80, 80, 80)));
     }
 }

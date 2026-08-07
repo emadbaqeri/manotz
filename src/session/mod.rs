@@ -47,12 +47,12 @@ mod tests {
 
     #[test]
     fn test_session_state_save() {
-        let temp_path = env::temp_dir().join("manotz_test_save.json");
+        let temp_path = env::temp_dir().join("manotz_session_save_test.json");
         let mut state = SessionState::default();
-        state.update_cursor(PathBuf::from("manotz_test_save.json"), 42);
+        state.update_cursor(PathBuf::from("manotz_session_save_test.json"), 42);
         state.save(&temp_path).unwrap();
         let content = std::fs::read_to_string(&temp_path).unwrap();
-        assert!(content.contains(r#""manotz_test_save.json""#));
+        assert!(content.contains(r#""manotz_session_save_test.json""#));
         assert!(content.contains("42"));
 
         let _ = fs::remove_file(&temp_path);
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn test_session_state_load_success() {
-        let temp_path = env::temp_dir().join("manotz_test_load.json");
+        let temp_path = env::temp_dir().join("manotz_session_load_test.json");
         let mut original = SessionState::default();
         original.update_cursor(PathBuf::from("load_test.md"), 30);
         original.save(&temp_path).unwrap();
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_session_state_load_not_found_returns_default() {
-        let fake_path = PathBuf::from("does_not_exist.json");
+        let fake_path = env::temp_dir().join("manotz_session_nonexistent_test.json");
         let loaded = SessionState::load(&fake_path);
         assert_eq!(loaded, SessionState::default());
     }

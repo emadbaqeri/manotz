@@ -993,9 +993,11 @@ mod tests {
     fn open_file_loads_content_and_sets_not_dirty() {
         use std::io::Write;
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_open.md");
-        let mut file = std::fs::File::create(&file_path).unwrap();
-        write!(file, "Hello from disk!").unwrap();
+        let file_path = dir.join("manotz_test_open_file.md");
+        {
+            let mut file = std::fs::File::create(&file_path).unwrap();
+            write!(file, "Hello from disk!").unwrap();
+        }
 
         let state = EditorState::open_file(&file_path, 5, 5).unwrap();
 
@@ -1013,9 +1015,11 @@ mod tests {
     fn edit_sets_is_dirty_true() {
         use std::io::Write;
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_dirty.md");
-        let mut file = std::fs::File::create(&file_path).unwrap();
-        write!(file, "Hello").unwrap();
+        let file_path = dir.join("manotz_test_dirty_file.md");
+        {
+            let mut file = std::fs::File::create(&file_path).unwrap();
+            write!(file, "Hello").unwrap();
+        }
 
         let state = EditorState::open_file(&file_path, 5, 5).unwrap();
         assert!(!state.is_dirty); // initially clean
@@ -1030,9 +1034,11 @@ mod tests {
     fn save_writes_buffer_to_disk_and_resets_is_dirty() {
         use std::io::Write;
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_save.md");
-        let mut file = std::fs::File::create(&file_path).unwrap();
-        write!(file, "Hello").unwrap();
+        let file_path = dir.join("manotz_test_save_file.md");
+        {
+            let mut file = std::fs::File::create(&file_path).unwrap();
+            write!(file, "Hello").unwrap();
+        }
 
         let state = EditorState::open_file(&file_path, 5, 5).unwrap();
         let mut state = state.update(Action::InsertChar('!'));

@@ -1,4 +1,9 @@
-use crate::{buffer::Buffer, selection::SelectionSet, text::grapheme_width};
+use crate::{
+    buffer::Buffer,
+    markdown::{Highlight, style_for},
+    selection::SelectionSet,
+    text::grapheme_width,
+};
 use unicode_segmentation::UnicodeSegmentation;
 
 pub mod adapter;
@@ -10,9 +15,15 @@ pub enum Colour {
 
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct Style {
-    bold: bool,
-    fg: Option<Colour>,
-    bg: Option<Colour>,
+    pub bold: bool,
+    pub fg: Option<Colour>,
+    pub bg: Option<Colour>,
+}
+
+impl Style {
+    pub fn new(bold: bool, fg: Option<Colour>, bg: Option<Colour>) -> Self {
+        Style { bold, fg, bg }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -145,11 +156,17 @@ impl Cell {
     }
 }
 
-pub fn render(buff: &impl Buffer, selections: &SelectionSet, viewport: &Viewport) -> Grid {
+pub fn render(
+    buff: &impl Buffer,
+    selections: &SelectionSet,
+    viewport: &Viewport,
+    highlights: &[Highlight],
+) -> Grid {
     let text = buff.slice(0, buff.len());
     let lines = text.lines().collect::<Vec<&str>>();
     let mut grid = Grid::new(viewport.cols(), viewport.rows());
 
+    // Draw text grapheme
     for r in 0..viewport.rows() {
         let doc_line = viewport.top() + r;
         if doc_line >= lines.len() {
@@ -169,6 +186,22 @@ pub fn render(buff: &impl Buffer, selections: &SelectionSet, viewport: &Viewport
                 grid.set_cell(r, viewport_col, Cell::new(grapheme));
             }
             document_col += width
+        }
+    }
+
+    for h in highlights {
+        let style = style_for(h.kind.clone());
+        for byte in h.start..h.end {
+            if let Some((line, col)) = byte_to_line_col(text, byte)
+                && let (Some(r), Some(c)) = (
+                    line.checked_sub(viewport.top()),
+                    col.checked_sub(viewport.left()),
+                )
+                && r < viewport.rows()
+                && c < viewport.cols()
+            {
+                grid.set_style(r, c, style.clone());
+            }
         }
     }
 
@@ -351,7 +384,7 @@ mod tests {
         let buf = GapBuffer::new("Hi");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 0, 1, 3);
-        let grid = render(&buf, &selections, &viewport);
+        let grid = render(&buf, &selections, &viewport, &[]);
         assert_eq!(grid.width(), 3);
         assert_eq!(grid.height(), 1);
         assert_eq!(grid.cell(0, 1).grapheme(), "i");
@@ -363,7 +396,7 @@ mod tests {
         let buffer = GapBuffer::new("AB\nCD\nEF");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(1, 0, 2, 2);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert_eq!(grid.width(), 2);
         assert_eq!(grid.height(), 2);
@@ -378,7 +411,7 @@ mod tests {
         let buffer = GapBuffer::new("ABCDE");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 2, 1, 2);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert_eq!(grid.width(), 2);
         assert_eq!(grid.height(), 1);
@@ -391,7 +424,7 @@ mod tests {
         let buffer = GapBuffer::new("AB\nCD");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 0, 4, 3);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
         assert_eq!(grid.cell(2, 0).grapheme(), " ");
         assert_eq!(grid.cell(3, 0).grapheme(), " ");
     }
@@ -416,7 +449,7 @@ mod tests {
         let buffer = GapBuffer::new("Hello");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 0, 3, 3);
-        let mut grid = render(&buffer, &selections, &viewport);
+        let mut grid = render(&buffer, &selections, &viewport, &[]);
 
         let style = Style {
             bold: true,
@@ -436,7 +469,7 @@ mod tests {
         let buffer = GapBuffer::new("Hi");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 0, 1, 3);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert!(!grid.cell(0, 0).is_bold());
         assert_eq!(grid.cell(0, 0).background(), Some(Colour::Rgb(80, 80, 80)));
@@ -448,7 +481,7 @@ mod tests {
         let buffer = GapBuffer::new("ABCDE");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 2, 5, 5);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert_eq!(grid.cell(0, 0).background(), None);
     }
@@ -458,7 +491,7 @@ mod tests {
         let buffer = GapBuffer::new("AB\nCD");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(1, 0, 5, 5);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert_eq!(grid.cell(0, 0).background(), None);
     }
@@ -468,7 +501,7 @@ mod tests {
         let buffer = GapBuffer::new("AB\nCD");
         let selections = SelectionSet::single(Selection::cursor(3));
         let viewport = Viewport::new(0, 0, 5, 5);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert_eq!(grid.cell(1, 0).background(), Some(Colour::Rgb(80, 80, 80)));
     }
@@ -478,7 +511,7 @@ mod tests {
         let buffer = GapBuffer::new("中A");
         let selections = SelectionSet::single(Selection::cursor(0));
         let viewport = Viewport::new(0, 0, 5, 5);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         assert_eq!(grid.cell(0, 0).grapheme(), "中");
         assert_eq!(grid.cell(0, 1).grapheme(), " ");
@@ -516,7 +549,7 @@ mod tests {
         // Selection from index 1 ('B') to 3 ('D')
         let selections = SelectionSet::single(Selection::new(1, 3));
         let viewport = Viewport::new(0, 0, 1, 5);
-        let grid = render(&buffer, &selections, &viewport);
+        let grid = render(&buffer, &selections, &viewport, &[]);
 
         // cell 0 ('A') has default bg
         assert_eq!(grid.cell(0, 0).background(), None);
@@ -535,5 +568,21 @@ mod tests {
 
         // cell 3 ('D', cursor head) has cursor bg
         assert_eq!(grid.cell(0, 3).background(), Some(Colour::Rgb(80, 80, 80)));
+    }
+
+    #[test]
+    fn render_applies_markdown_heading_style() {
+        use crate::markdown::{HighlightKind, highlight, style_for};
+
+        let buffer = GapBuffer::new("# Heading");
+        let selections = SelectionSet::single(Selection::cursor(0));
+        let viewport = Viewport::new(0, 0, 1, 10);
+        let highlights = highlight("# Heading");
+
+        let grid = render(&buffer, &selections, &viewport, &highlights);
+
+        let expected_style = style_for(HighlightKind::Heading);
+
+        assert_eq!(grid.cell(0, 1).style(), &expected_style);
     }
 }

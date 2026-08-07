@@ -8,3 +8,4 @@ pub mod render;
 pub mod selection;
 pub mod session;
 pub mod text;
+pub mod vault;

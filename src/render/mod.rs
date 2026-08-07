@@ -1,4 +1,9 @@
-use crate::{buffer::Buffer, markdown::{Highlight, style_for}, selection::SelectionSet, text::grapheme_width};
+use crate::{
+    buffer::Buffer,
+    markdown::{Highlight, style_for},
+    selection::SelectionSet,
+    text::grapheme_width,
+};
 use unicode_segmentation::UnicodeSegmentation;
 
 pub mod adapter;
@@ -151,7 +156,12 @@ impl Cell {
     }
 }
 
-pub fn render(buff: &impl Buffer, selections: &SelectionSet, viewport: &Viewport, highlights: &[Highlight]) -> Grid {
+pub fn render(
+    buff: &impl Buffer,
+    selections: &SelectionSet,
+    viewport: &Viewport,
+    highlights: &[Highlight],
+) -> Grid {
     let text = buff.slice(0, buff.len());
     let lines = text.lines().collect::<Vec<&str>>();
     let mut grid = Grid::new(viewport.cols(), viewport.rows());
@@ -182,12 +192,17 @@ pub fn render(buff: &impl Buffer, selections: &SelectionSet, viewport: &Viewport
     for h in highlights {
         let style = style_for(h.kind.clone());
         for byte in h.start..h.end {
-            if let Some((line,col)) = byte_to_line_col(text, byte) && let (Some(r), Some(c)) = (line.checked_sub(viewport.top()), col.checked_sub(viewport.left())) && r < viewport.rows() && c < viewport.cols() {
+            if let Some((line, col)) = byte_to_line_col(text, byte)
+                && let (Some(r), Some(c)) = (
+                    line.checked_sub(viewport.top()),
+                    col.checked_sub(viewport.left()),
+                )
+                && r < viewport.rows()
+                && c < viewport.cols()
+            {
                 grid.set_style(r, c, style.clone());
             }
-
         }
-
     }
 
     let selection_style = Style {
@@ -557,7 +572,7 @@ mod tests {
 
     #[test]
     fn render_applies_markdown_heading_style() {
-        use crate::markdown::{highlight, style_for, HighlightKind};
+        use crate::markdown::{HighlightKind, highlight, style_for};
 
         let buffer = GapBuffer::new("# Heading");
         let selections = SelectionSet::single(Selection::cursor(0));

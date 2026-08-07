@@ -6,7 +6,7 @@ use manotz::{
     editor::EditorState,
     input::Action,
     render::{
-        adapter::{enter_raw_mode, Adapter},
+        adapter::{Adapter, enter_raw_mode},
         render,
     },
 };
@@ -43,7 +43,12 @@ fn main() -> io::Result<()> {
     loop {
         let text = state.buffer.slice(0, state.buffer.len());
         let highlights = manotz::markdown::highlight(text);
-        let grid = render(&state.buffer, &state.selections, &state.viewport, &highlights);
+        let grid = render(
+            &state.buffer,
+            &state.selections,
+            &state.viewport,
+            &highlights,
+        );
         adapter.draw(&grid, &mut stdout)?;
         let event = event::read()?;
         let key = match event {

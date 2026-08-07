@@ -1,11 +1,11 @@
 use crate::{
     buffer::{Buffer, GapBuffer},
     command::{
-        action_delete, motion_down, motion_left, motion_right, motion_up, Edit, Transaction,
+        Edit, Transaction, action_delete, motion_down, motion_left, motion_right, motion_up,
     },
     history::{History, MergeKey},
     input::{Action, Mode},
-    render::{byte_to_line_col, Viewport},
+    render::{Viewport, byte_to_line_col},
     selection::{Selection, SelectionSet},
     text::{grapheme_len, grapheme_to_byte_offset},
 };

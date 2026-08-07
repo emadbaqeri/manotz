@@ -5,4 +5,5 @@ pub mod history;
 pub mod input;
 pub mod render;
 pub mod selection;
+pub mod session;
 pub mod text;

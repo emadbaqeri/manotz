@@ -14,6 +14,7 @@ Thanks for your interest in contributing. The project is early; small, focused c
 ```bash
 git clone https://github.com/emadbaqeri/manotz.git
 cd manotz
+git config core.hooksPath .githooks
 cargo test --locked
 cargo run
 ```

@@ -7,6 +7,7 @@ CONTEXT.md
 
 # Editor / OS junk
 .DS_Store
+.manotz/
 *.swp
 *.swo
 *~

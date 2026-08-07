@@ -40,17 +40,17 @@ This file is the living checklist for what is shipped and what comes next.
 
 | Status | Item |
 | --- | --- |
-| ⬜ | Open a file into the buffer |
-| ⬜ | Save buffer to disk |
-| ⬜ | Dirty / clean tracking |
-| ⬜ | Restore last-open note and per-note cursor (`.manotz/state.json`) |
+| ✅ | Open a file into the buffer |
+| ✅ | Save buffer to disk |
+| ✅ | Dirty / clean tracking |
+| ✅ | Restore last-open note and per-note cursor (`.manotz/state.json`) |
 
 ## 4. Markdown editing
 
 | Status | Item |
 | --- | --- |
-| ⬜ | Live syntax highlighting (headings, emphasis, code, links) |
-| ⬜ | Single-pass markdown parse → styles + extraction |
+| ✅ | Live syntax highlighting (headings, emphasis, code, links) |
+| ✅ | Single-pass markdown parse → styles (+ extraction later) |
 | ⬜ | Raw markdown editing (not WYSIWYG) |
 
 ## 5. Vault and identity
@@ -113,7 +113,7 @@ This file is the living checklist for what is shipped and what comes next.
 
 ## Current focus
 
-**Next up:** selection-first editing (Select mode + select-then-act), then open/save so the editor can work on real vault files.
+**Next up:** Vault and identity (vault discovery of `.md` files, note resolution).
 
 Update this file when a checklist item lands. Prefer an atomic commit that only
 touches the roadmap when nothing else changes.

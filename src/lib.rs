@@ -3,6 +3,8 @@ pub mod command;
 pub mod editor;
 pub mod history;
 pub mod input;
+pub mod markdown;
 pub mod render;
 pub mod selection;
+pub mod session;
 pub mod text;

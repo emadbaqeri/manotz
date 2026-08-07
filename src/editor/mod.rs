@@ -1,11 +1,11 @@
 use crate::{
     buffer::{Buffer, GapBuffer},
     command::{
-        Edit, Transaction, action_delete, motion_down, motion_left, motion_right, motion_up,
+        action_delete, motion_down, motion_left, motion_right, motion_up, Edit, Transaction,
     },
     history::{History, MergeKey},
     input::{Action, Mode},
-    render::{Viewport, byte_to_line_col},
+    render::{byte_to_line_col, Viewport},
     selection::{Selection, SelectionSet},
     text::{grapheme_len, grapheme_to_byte_offset},
 };
@@ -17,6 +17,8 @@ pub struct EditorState {
     pub mode: Mode,
     pub history: History,
     pub register: Option<String>,
+    pub is_dirty: bool,
+    pub file_path: Option<std::path::PathBuf>,
 }
 
 impl EditorState {
@@ -32,6 +34,8 @@ impl EditorState {
             mode: Mode::Normal,
             history: History::new(),
             register: None,
+            file_path: None,
+            is_dirty: false,
         }
     }
 
@@ -89,6 +93,8 @@ impl EditorState {
                     mode: Mode::Normal,
                     history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: true,
                 }
             }
             Action::Yank => {
@@ -111,6 +117,8 @@ impl EditorState {
                     mode: Mode::Normal,
                     history: self.history,
                     register: Some(yanked),
+                    file_path: self.file_path,
+                    is_dirty: self.is_dirty,
                 }
             }
             Action::Change => {
@@ -152,6 +160,8 @@ impl EditorState {
                     mode: Mode::Insert,
                     history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: true,
                 }
             }
             Action::Delete => {
@@ -193,6 +203,8 @@ impl EditorState {
                     mode: Mode::Normal,
                     history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: true,
                 }
             }
             Action::Redo => {
@@ -239,6 +251,8 @@ impl EditorState {
                             mode: self.mode,
                             history,
                             register: self.register,
+                            file_path: self.file_path,
+                            is_dirty: true,
                         }
                     }
                     None => EditorState {
@@ -248,6 +262,8 @@ impl EditorState {
                         mode: self.mode,
                         history,
                         register: None,
+                        file_path: self.file_path,
+                        is_dirty: true,
                     },
                 }
             }
@@ -293,6 +309,8 @@ impl EditorState {
                             mode: self.mode,
                             history,
                             register: self.register,
+                            file_path: self.file_path,
+                            is_dirty: true,
                         }
                     }
                     None => EditorState {
@@ -302,6 +320,8 @@ impl EditorState {
                         mode: self.mode,
                         history,
                         register: None,
+                        file_path: self.file_path,
+                        is_dirty: self.is_dirty,
                     },
                 }
             }
@@ -353,6 +373,8 @@ impl EditorState {
                     mode: self.mode,
                     history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: true,
                 }
             }
             Action::InsertChar(ch) => {
@@ -398,6 +420,8 @@ impl EditorState {
                     mode: self.mode,
                     history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: true,
                 }
             }
             Action::MoveLeft => {
@@ -425,6 +449,8 @@ impl EditorState {
                     mode: self.mode,
                     history: self.history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: self.is_dirty,
                 }
             }
             Action::MoveRight => {
@@ -454,6 +480,8 @@ impl EditorState {
                     mode: self.mode,
                     history: self.history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: self.is_dirty,
                 }
             }
             Action::MoveUp => {
@@ -481,6 +509,8 @@ impl EditorState {
                     mode: self.mode,
                     history: self.history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: self.is_dirty,
                 }
             }
             Action::MoveDown => {
@@ -509,6 +539,8 @@ impl EditorState {
                     mode: self.mode,
                     history: self.history,
                     register: self.register,
+                    file_path: self.file_path,
+                    is_dirty: self.is_dirty,
                 }
             }
             Action::EnterInsert => EditorState {
@@ -518,6 +550,8 @@ impl EditorState {
                 mode: Mode::Insert,
                 history: self.history,
                 register: self.register,
+                file_path: self.file_path,
+                is_dirty: self.is_dirty,
             },
             Action::EnterNormal => EditorState {
                 buffer: self.buffer,
@@ -526,8 +560,9 @@ impl EditorState {
                 mode: Mode::Normal,
                 history: self.history,
                 register: self.register,
+                file_path: self.file_path,
+                is_dirty: self.is_dirty,
             },
-            Action::Quit => self,
             Action::EnterSelect => EditorState {
                 buffer: self.buffer,
                 viewport: self.viewport,
@@ -535,8 +570,60 @@ impl EditorState {
                 mode: Mode::Select,
                 history: self.history,
                 register: self.register,
+                file_path: self.file_path,
+                is_dirty: self.is_dirty,
             },
+            Action::Quit => self,
         }
+    }
+
+    pub fn open_file(
+        file_path: &std::path::Path,
+        rows: usize,
+        cols: usize,
+    ) -> std::io::Result<EditorState> {
+        let content = std::fs::read_to_string(file_path)?;
+        let mut state = EditorState::new(&content, rows, cols);
+        state.file_path = Some(file_path.to_path_buf());
+        state.is_dirty = false;
+        Ok(state)
+    }
+
+    pub fn save(&mut self) -> std::io::Result<()> {
+        match &self.file_path {
+            Some(path) => {
+                let content = self.buffer.slice(0, self.buffer.len());
+                std::fs::write(path, content)?;
+                self.is_dirty = false;
+
+                Ok(())
+            }
+            None => Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "No file path associated with this buffer",
+            )),
+        }
+    }
+
+    pub fn open_or_create(
+        file_path: &std::path::Path,
+        rows: usize,
+        cols: usize,
+    ) -> std::io::Result<EditorState> {
+        if file_path.exists() {
+            Self::open_file(file_path, rows, cols)
+        } else {
+            let mut state = Self::new("", rows, cols);
+            state.file_path = Some(file_path.to_path_buf());
+            state.is_dirty = false;
+            Ok(state)
+        }
+    }
+
+    pub fn restore_cursor(&mut self, offset: usize) {
+        let len = self.buffer.len();
+        let safe = offset.min(len);
+        self.selections = SelectionSet::single(Selection::cursor(safe));
     }
 }
 
@@ -900,5 +987,82 @@ mod tests {
         let next = state.update(Action::MoveRight);
 
         assert_eq!(next.register.as_deref(), Some("h"));
+    }
+
+    #[test]
+    fn open_file_loads_content_and_sets_not_dirty() {
+        use std::io::Write;
+        let dir = std::env::temp_dir();
+        let file_path = dir.join("manotz_test_open.md");
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        write!(file, "Hello from disk!").unwrap();
+
+        let state = EditorState::open_file(&file_path, 5, 5).unwrap();
+
+        assert_eq!(
+            state.buffer.slice(0, state.buffer.len()),
+            "Hello from disk!"
+        );
+        assert_eq!(state.file_path, Some(file_path.clone()));
+        assert!(!state.is_dirty);
+
+        let _ = std::fs::remove_file(file_path);
+    }
+
+    #[test]
+    fn edit_sets_is_dirty_true() {
+        use std::io::Write;
+        let dir = std::env::temp_dir();
+        let file_path = dir.join("manotz_test_dirty.md");
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        write!(file, "Hello").unwrap();
+
+        let state = EditorState::open_file(&file_path, 5, 5).unwrap();
+        assert!(!state.is_dirty); // initially clean
+
+        let next = state.update(Action::InsertChar('!'));
+        assert!(next.is_dirty); // dirty after edit!
+
+        let _ = std::fs::remove_file(file_path);
+    }
+
+    #[test]
+    fn save_writes_buffer_to_disk_and_resets_is_dirty() {
+        use std::io::Write;
+        let dir = std::env::temp_dir();
+        let file_path = dir.join("manotz_test_save.md");
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        write!(file, "Hello").unwrap();
+
+        let state = EditorState::open_file(&file_path, 5, 5).unwrap();
+        let mut state = state.update(Action::InsertChar('!'));
+        state.save().unwrap();
+        assert!(!state.is_dirty);
+        let disk_content = std::fs::read_to_string(&file_path).unwrap();
+        assert_eq!(disk_content, "!Hello");
+
+        let _ = std::fs::remove_file(file_path);
+    }
+
+    #[test]
+    fn open_or_create_nonexistent_file_returns_file_returns_empty_buffer_with_path() {
+        let dir = std::env::temp_dir();
+        let file_path = dir.join("manotz_nonexistent_test.md");
+
+        let _ = std::fs::remove_file(&file_path);
+
+        let state = EditorState::open_or_create(&file_path, 5, 5).unwrap();
+
+        assert_eq!(state.buffer.slice(0, state.buffer.len()), "");
+        assert_eq!(state.file_path, Some(file_path));
+        assert!(!state.is_dirty);
+    }
+
+    #[test]
+    fn restore_cursor_clamps_to_buffer_len() {
+        let mut state = EditorState::new("hi", 5, 5);
+        state.restore_cursor(999);
+        let head = state.selections.primary().head();
+        assert_eq!(head, 2);
     }
 }

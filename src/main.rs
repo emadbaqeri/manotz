@@ -2,6 +2,7 @@ use std::io;
 
 use crossterm::event::{self, KeyEventKind};
 use manotz::{
+    buffer::Buffer,
     editor::EditorState,
     input::Action,
     render::{
@@ -40,7 +41,9 @@ fn main() -> io::Result<()> {
     let mut stdout = std::io::stdout();
 
     loop {
-        let grid = render(&state.buffer, &state.selections, &state.viewport);
+        let text = state.buffer.slice(0, state.buffer.len());
+        let highlights = manotz::markdown::highlight(text);
+        let grid = render(&state.buffer, &state.selections, &state.viewport, &highlights);
         adapter.draw(&grid, &mut stdout)?;
         let event = event::read()?;
         let key = match event {

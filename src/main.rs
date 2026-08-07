@@ -5,7 +5,7 @@ use manotz::{
     editor::EditorState,
     input::Action,
     render::{
-        adapter::{enter_raw_mode, Adapter},
+        adapter::{Adapter, enter_raw_mode},
         render,
     },
 };

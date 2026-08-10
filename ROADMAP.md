@@ -58,8 +58,8 @@ This file is the living checklist for what is shipped and what comes next.
 | Status | Item |
 | --- | --- |
 | ✅ | Vault discovery (directory of `.md` files) |
-| ⬜ | Note identity by filename stem |
-| ⬜ | Shortest-unique-path resolution (Obsidian model) |
+| ✅ | Note identity by filename stem |
+| ✅ | Shortest-unique-path resolution (Obsidian model) |
 | ⬜ | Frontmatter aliases in the resolution index |
 | ⬜ | File-tree sidebar |
 
@@ -113,7 +113,7 @@ This file is the living checklist for what is shipped and what comes next.
 
 ## Current focus
 
-**Next up:** Note identity by filename stem, then shortest-unique-path resolution.
+**Next up:** Frontmatter aliases in the resolution index.
 
 Update this file when a checklist item lands. Prefer an atomic commit that only
 touches the roadmap when nothing else changes.

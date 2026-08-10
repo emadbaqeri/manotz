@@ -44,10 +44,16 @@ mod tests {
     use std::{env, fs, path::PathBuf};
 
     use crate::session::SessionState;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
 
     #[test]
     fn test_session_state_save() {
-        let temp_path = env::temp_dir().join("manotz_session_save_test.json");
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let temp_path = env::temp_dir().join(format!(
+            "manotz_session_save_test_{}_{n}.json",
+            std::process::id()
+        ));
         let mut state = SessionState::default();
         state.update_cursor(PathBuf::from("manotz_session_save_test.json"), 42);
         state.save(&temp_path).unwrap();
@@ -60,7 +66,11 @@ mod tests {
 
     #[test]
     fn test_session_state_load_success() {
-        let temp_path = env::temp_dir().join("manotz_session_load_test.json");
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let temp_path = env::temp_dir().join(format!(
+            "manotz_session_load_test_{}_{n}.json",
+            std::process::id()
+        ));
         let mut original = SessionState::default();
         original.update_cursor(PathBuf::from("load_test.md"), 30);
         original.save(&temp_path).unwrap();
@@ -73,7 +83,11 @@ mod tests {
 
     #[test]
     fn test_session_state_load_not_found_returns_default() {
-        let fake_path = env::temp_dir().join("manotz_session_nonexistent_test.json");
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let fake_path = env::temp_dir().join(format!(
+            "manotz_session_nonexistent_test_{}_{n}.json",
+            std::process::id()
+        ));
         let loaded = SessionState::load(&fake_path);
         assert_eq!(loaded, SessionState::default());
     }

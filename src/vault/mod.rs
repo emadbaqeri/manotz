@@ -24,7 +24,11 @@ impl VaultIndex {
                 for alias in fm.aliases {
                     aliases
                         .entry(alias)
-                        .and_modify(|e| *e = None)
+                        .and_modify(|existing| {
+                            if existing.as_ref() != Some(note) {
+                                *existing = None;
+                            }
+                        })
                         .or_insert_with(|| Some(note.clone()));
                 }
             }
@@ -330,6 +334,18 @@ mod tests {
 
         // Ambiguous duplicate alias returns None
         assert_eq!(index.resolve("Project"), None);
+    }
+
+    #[test]
+    fn vault_index_same_note_duplicate_alias_resolves_to_note() {
+        let dir = TempVault::new("same_note_dup");
+        let note_a = dir.path().join("a.md");
+        fs::write(&note_a, "---\naliases: [Project, Project]\n---").unwrap();
+
+        let index = VaultIndex::build(dir.path()).unwrap();
+
+        // Repeated alias in same note's frontmatter resolves to note_a
+        assert_eq!(index.resolve("Project"), Some(note_a.as_path()));
     }
 
     #[test]

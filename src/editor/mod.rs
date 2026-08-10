@@ -991,9 +991,17 @@ mod tests {
 
     #[test]
     fn open_file_loads_content_and_sets_not_dirty() {
-        use std::io::Write;
+        use std::{
+            io::Write,
+            sync::atomic::{AtomicU64, Ordering},
+        };
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_open_file.md");
+        let file_path = dir.join(format!(
+            "manotz_test_open_file_{}_{n}.md",
+            std::process::id()
+        ));
         {
             let mut file = std::fs::File::create(&file_path).unwrap();
             write!(file, "Hello from disk!").unwrap();
@@ -1013,9 +1021,17 @@ mod tests {
 
     #[test]
     fn edit_sets_is_dirty_true() {
-        use std::io::Write;
+        use std::{
+            io::Write,
+            sync::atomic::{AtomicU64, Ordering},
+        };
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_dirty_file.md");
+        let file_path = dir.join(format!(
+            "manotz_test_dirty_file_{}_{n}.md",
+            std::process::id()
+        ));
         {
             let mut file = std::fs::File::create(&file_path).unwrap();
             write!(file, "Hello").unwrap();
@@ -1032,9 +1048,17 @@ mod tests {
 
     #[test]
     fn save_writes_buffer_to_disk_and_resets_is_dirty() {
-        use std::io::Write;
+        use std::{
+            io::Write,
+            sync::atomic::{AtomicU64, Ordering},
+        };
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_save_file.md");
+        let file_path = dir.join(format!(
+            "manotz_test_save_file_{}_{n}.md",
+            std::process::id()
+        ));
         {
             let mut file = std::fs::File::create(&file_path).unwrap();
             write!(file, "Hello").unwrap();
@@ -1052,16 +1076,24 @@ mod tests {
 
     #[test]
     fn open_or_create_nonexistent_file_returns_file_returns_empty_buffer_with_path() {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_nonexistent_test.md");
+        let file_path = dir.join(format!(
+            "manotz_nonexistent_test_{}_{n}.md",
+            std::process::id()
+        ));
 
         let _ = std::fs::remove_file(&file_path);
 
         let state = EditorState::open_or_create(&file_path, 5, 5).unwrap();
 
         assert_eq!(state.buffer.slice(0, state.buffer.len()), "");
-        assert_eq!(state.file_path, Some(file_path));
+        assert_eq!(state.file_path, Some(file_path.clone()));
         assert!(!state.is_dirty);
+
+        let _ = std::fs::remove_file(&file_path);
     }
 
     #[test]

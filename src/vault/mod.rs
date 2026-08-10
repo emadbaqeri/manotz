@@ -31,8 +31,8 @@ pub fn candidate_at(path: &Path, k: usize) -> Option<PathBuf> {
     let parent = path.parent()?;
     let dirs = parent
         .components()
-        .filter_map(|c| c.as_os_str().to_str())
-        .collect::<Vec<&str>>();
+        .map(|c| c.as_os_str())
+        .collect::<Vec<&std::ffi::OsStr>>();
 
     if k > dirs.len() {
         return None;

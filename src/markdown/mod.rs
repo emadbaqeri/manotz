@@ -1,6 +1,8 @@
 use crate::render::{Colour, Style};
 use pulldown_cmark::{Event, Parser, Tag};
 
+pub mod frontmatter;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum HighlightKind {
     Heading,

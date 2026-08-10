@@ -16,13 +16,39 @@ fn extract_frontmatter_block(text: &str) -> Option<&str> {
     Some(rest[..end_idx].trim())
 }
 
+/// Helper: Strips trailing YAML comments (`# comment`) outside single/double quotes.
+fn strip_yaml_comment(s: &str) -> &str {
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut comment_start = None;
+
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            '#' if !in_single && !in_double => {
+                comment_start = Some(i);
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(idx) = comment_start {
+        &s[..idx]
+    } else {
+        s
+    }
+}
+
 pub fn parse_frontmatter(text: &str) -> Option<Frontmatter> {
     let block = extract_frontmatter_block(text)?;
     let mut aliases = Vec::new();
     let mut in_aliases_block = false;
 
     for line in block.lines() {
-        let trimmed = line.trim();
+        let line_without_comment = strip_yaml_comment(line);
+        let trimmed = line_without_comment.trim();
 
         if let Some(rest) = trimmed.strip_prefix("aliases:") {
             let rest = rest.trim();
@@ -71,5 +97,21 @@ mod tests {
         let frontmatter = parse_frontmatter(content).unwrap();
 
         assert_eq!(frontmatter.aliases, vec!["TODO List", "Tasks"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_handles_inline_aliases_with_trailing_comments() {
+        let content = "---\naliases: [TODO List, Tasks] # inline comment\n---\n# Notes";
+        let frontmatter = parse_frontmatter(content).unwrap();
+
+        assert_eq!(frontmatter.aliases, vec!["TODO List", "Tasks"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_handles_yaml_list_aliases_with_comments() {
+        let content = "---\naliases:\n  - TODO List # urgent item\n  - \"Project #9\" # secondary\n---\n# Notes";
+        let frontmatter = parse_frontmatter(content).unwrap();
+
+        assert_eq!(frontmatter.aliases, vec!["TODO List", "Project #9"]);
     }
 }

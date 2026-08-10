@@ -20,6 +20,25 @@ pub fn note_stem(path: &Path) -> Option<&str> {
     path.file_stem().and_then(|stem| stem.to_str())
 }
 
+/// Helper: Finds the common directory prefix among a set of paths.
+fn common_vault_root(paths: &[PathBuf]) -> Option<PathBuf> {
+    if paths.is_empty() {
+        return None;
+    }
+    let mut iter = paths.iter();
+    let first = iter.next()?;
+    let mut prefix = first.parent()?.to_path_buf();
+
+    for path in iter {
+        while !path.starts_with(&prefix) {
+            if !prefix.pop() {
+                return None;
+            }
+        }
+    }
+    Some(prefix)
+}
+
 /// Helper: Builds a candidate relative path for `path` including `k` parent
 /// directory components.
 /// k = 0 -> "todo"
@@ -48,17 +67,35 @@ pub fn candidate_at(path: &Path, k: usize) -> Option<PathBuf> {
 }
 
 pub fn shortest_unique_path(path: &Path, all: &[PathBuf]) -> Option<PathBuf> {
-    let parent = path.parent()?;
+    let root = common_vault_root(all);
+    let rel_path = root
+        .as_ref()
+        .and_then(|r| path.strip_prefix(r).ok())
+        .unwrap_or(path);
+
+    let rel_all: Vec<PathBuf> = all
+        .iter()
+        .map(|p| {
+            root.as_ref()
+                .and_then(|r| p.strip_prefix(r).ok())
+                .unwrap_or(p)
+                .to_path_buf()
+        })
+        .collect();
+
+    let parent = rel_path.parent()?;
     let dir_count = parent.components().count();
 
     for k in 0..=dir_count {
-        let candidate = candidate_at(path, k)?;
+        let candidate = candidate_at(rel_path, k)?;
 
-        let is_unique = all.iter().all(|other| {
-            if other == path {
+        let is_unique = rel_all.iter().all(|other| {
+            if other == rel_path {
                 true
             } else {
-                candidate_at(other, k).as_ref() != Some(&candidate)
+                let other_parent_count = other.parent().map_or(0, |p| p.components().count());
+                (0..=other_parent_count)
+                    .all(|other_k| candidate_at(other, other_k).as_ref() != Some(&candidate))
             }
         });
 
@@ -66,7 +103,8 @@ pub fn shortest_unique_path(path: &Path, all: &[PathBuf]) -> Option<PathBuf> {
             return Some(candidate);
         }
     }
-    candidate_at(path, dir_count)
+
+    None
 }
 
 #[cfg(test)]
@@ -176,6 +214,34 @@ mod tests {
         assert_eq!(
             shortest_unique_path(&personal, &all),
             Some(PathBuf::from("personal").join("todo"))
+        );
+    }
+
+    #[test]
+    fn shortest_unique_path_strips_absolute_vault_root_prefix() {
+        let root = PathBuf::from("/Users/emad/vault");
+        let work = root.join("work").join("todo.md");
+        let personal = root.join("personal").join("todo.md");
+        let all = vec![work.clone(), personal.clone()];
+
+        assert_eq!(
+            shortest_unique_path(&work, &all),
+            Some(PathBuf::from("work").join("todo"))
+        );
+    }
+
+    #[test]
+    fn shortest_unique_path_root_note_vs_nested_note() {
+        let root_todo = PathBuf::from("todo.md");
+        let work_todo = PathBuf::from("work").join("todo.md");
+        let all = vec![root_todo.clone(), work_todo.clone()];
+
+        // Root note 'todo.md' cannot be disambiguated with folder prefix, returns None
+        assert_eq!(shortest_unique_path(&root_todo, &all), None);
+        // Nested note 'work/todo.md' is disambiguated with 'work/todo'
+        assert_eq!(
+            shortest_unique_path(&work_todo, &all),
+            Some(PathBuf::from("work").join("todo"))
         );
     }
 }

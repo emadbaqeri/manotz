@@ -1032,9 +1032,17 @@ mod tests {
 
     #[test]
     fn save_writes_buffer_to_disk_and_resets_is_dirty() {
-        use std::io::Write;
+        use std::{
+            io::Write,
+            sync::atomic::{AtomicU64, Ordering},
+        };
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
         let dir = std::env::temp_dir();
-        let file_path = dir.join("manotz_test_save_file.md");
+        let file_path = dir.join(format!(
+            "manotz_test_save_file_{}_{n}.md",
+            std::process::id()
+        ));
         {
             let mut file = std::fs::File::create(&file_path).unwrap();
             write!(file, "Hello").unwrap();

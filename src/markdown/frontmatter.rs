@@ -1,0 +1,75 @@
+#[derive(Debug, PartialEq, Default, Clone)]
+pub struct Frontmatter {
+    pub aliases: Vec<String>,
+}
+
+/// Helper: Extracts text between leading `---` and ending `---` if document
+///  starts with frontmatter
+fn extract_frontmatter_block(text: &str) -> Option<&str> {
+    let trimmed = text.trim_start();
+    if !trimmed.starts_with("---") {
+        return None;
+    }
+
+    let rest = &trimmed[3..];
+    let end_idx = rest.find("\n---")?;
+    Some(rest[..end_idx].trim())
+}
+
+pub fn parse_frontmatter(text: &str) -> Option<Frontmatter> {
+    let block = extract_frontmatter_block(text)?;
+    let mut aliases = Vec::new();
+    let mut in_aliases_block = false;
+
+    for line in block.lines() {
+        let trimmed = line.trim();
+
+        if let Some(rest) = trimmed.strip_prefix("aliases:") {
+            let rest = rest.trim();
+            if rest.starts_with('[') && rest.ends_with(']') {
+                let inner = &rest[1..rest.len() - 1];
+                for item in inner.split(',') {
+                    let cleaned = item.trim().trim_matches('"').trim_matches('\'');
+                    if !cleaned.is_empty() {
+                        aliases.push(cleaned.to_string());
+                    }
+                }
+                in_aliases_block = false;
+            } else if rest.is_empty() {
+                in_aliases_block = true;
+            }
+        } else if in_aliases_block {
+            if let Some(item) = trimmed.strip_prefix("- ") {
+                let cleaned = item.trim().trim_matches('"').trim_matches('\'');
+                if !cleaned.is_empty() {
+                    aliases.push(cleaned.to_string());
+                }
+            } else if !trimmed.is_empty() {
+                in_aliases_block = false;
+            }
+        }
+    }
+
+    Some(Frontmatter { aliases })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_frontmatter_extracts_inline_aliases() {
+        let content = "---\naliases: [TODO List, Tasks]\n---# Notes";
+        let frontmatter = parse_frontmatter(content).unwrap();
+
+        assert_eq!(frontmatter.aliases, vec!["TODO List", "Tasks"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_extracts_yaml_list_aliases() {
+        let content = "---\naliases:\n - TODO List\n - Tasks\n---\n&Notes";
+        let frontmatter = parse_frontmatter(content).unwrap();
+
+        assert_eq!(frontmatter.aliases, vec!["TODO List", "Tasks"]);
+    }
+}

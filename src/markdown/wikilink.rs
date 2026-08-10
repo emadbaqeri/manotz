@@ -61,7 +61,7 @@ pub fn parse_wikilinks(text: &str) -> Vec<Wikilink<'_>> {
             });
             start_search = close_idx + 2;
         } else {
-            start_search = content_start;
+            break;
         }
     }
     links
@@ -112,5 +112,15 @@ mod tests {
         assert_eq!(links.len(), 1);
         assert_eq!(links[0].target, "Valid Note");
         assert_eq!(links[0].display, "Valid Note");
+    }
+
+    #[test]
+    fn parse_wikilinks_unclosed_opener_at_eof() {
+        let text = "Valid [[Link]] followed by trailing [[unclosed opener";
+        let links = parse_wikilinks(text);
+
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].target, "Link");
+        assert_eq!(links[0].display, "Link");
     }
 }

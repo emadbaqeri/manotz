@@ -8,21 +8,24 @@ use crate::markdown::frontmatter::parse_frontmatter;
 #[derive(Debug, Default, Clone)]
 pub struct VaultIndex {
     pub notes: Vec<PathBuf>,
-    // Map from alias/stem -> note path
-    aliases: HashMap<String, PathBuf>,
+    // Map from alias -> Option<note path> (None represents ambiguous duplicate alias)
+    aliases: HashMap<String, Option<PathBuf>>,
 }
 
 impl VaultIndex {
     pub fn build(vault_root: &Path) -> std::io::Result<Self> {
         let notes = discover_vault(vault_root)?;
-        let mut aliases = HashMap::new();
+        let mut aliases: HashMap<String, Option<PathBuf>> = HashMap::new();
 
         for note in &notes {
             if let Ok(content) = std::fs::read_to_string(note)
                 && let Some(fm) = parse_frontmatter(&content)
             {
                 for alias in fm.aliases {
-                    aliases.insert(alias, note.clone());
+                    aliases
+                        .entry(alias)
+                        .and_modify(|e| *e = None)
+                        .or_insert_with(|| Some(note.clone()));
                 }
             }
         }
@@ -31,14 +34,14 @@ impl VaultIndex {
     }
 
     pub fn resolve(&self, query: &str) -> Option<&Path> {
-        if let Some(path) = self.aliases.get(query) {
-            return Some(path.as_path());
+        if let Some(opt_path) = self.aliases.get(query) {
+            return opt_path.as_deref();
         }
 
         let query_path = Path::new(query);
         for note in &self.notes {
             if let Some(shortest) = shortest_unique_path(note, &self.notes)
-                && (shortest == query_path || note_stem(note) == Some(query))
+                && shortest == query_path
             {
                 return Some(note.as_path());
             }
@@ -313,5 +316,50 @@ mod tests {
         assert_eq!(index.resolve("Action Items"), Some(note_path.as_path()));
         // 4. Non-existent query returns None
         assert_eq!(index.resolve("Unknown"), None);
+    }
+
+    #[test]
+    fn vault_index_duplicate_alias_returns_none() {
+        let dir = TempVault::new("dup_alias");
+        let note_a = dir.path().join("a.md");
+        let note_b = dir.path().join("b.md");
+        fs::write(&note_a, "---\naliases: [Project]\n---").unwrap();
+        fs::write(&note_b, "---\naliases: [Project]\n---").unwrap();
+
+        let index = VaultIndex::build(dir.path()).unwrap();
+
+        // Ambiguous duplicate alias returns None
+        assert_eq!(index.resolve("Project"), None);
+    }
+
+    #[test]
+    fn vault_index_ambiguous_stem_query_returns_none() {
+        let dir = TempVault::new("ambig_stem");
+        let work = dir.path().join("work");
+        let personal = dir.path().join("personal");
+        fs::create_dir_all(&work).unwrap();
+        fs::create_dir_all(&personal).unwrap();
+
+        let work_todo = work.join("todo.md");
+        let personal_todo = personal.join("todo.md");
+        fs::write(&work_todo, "# Work").unwrap();
+        fs::write(&personal_todo, "# Personal").unwrap();
+
+        let index = VaultIndex::build(dir.path()).unwrap();
+
+        // Ambiguous query "todo" returns None
+        assert_eq!(index.resolve("todo"), None);
+
+        // Disambiguated queries resolve correctly
+        let work_query = Path::new("work").join("todo");
+        let personal_query = Path::new("personal").join("todo");
+        assert_eq!(
+            index.resolve(work_query.to_str().unwrap()),
+            Some(work_todo.as_path())
+        );
+        assert_eq!(
+            index.resolve(personal_query.to_str().unwrap()),
+            Some(personal_todo.as_path())
+        );
     }
 }

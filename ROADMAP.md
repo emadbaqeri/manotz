@@ -58,8 +58,8 @@ This file is the living checklist for what is shipped and what comes next.
 | Status | Item |
 | --- | --- |
 | ✅ | Vault discovery (directory of `.md` files) |
-| ⬜ | Note identity by filename stem |
-| ⬜ | Shortest-unique-path resolution (Obsidian model) |
+| ✅ | Note identity by filename stem |
+| ✅ | Shortest-unique-path resolution (Obsidian model) |
 | ⬜ | Frontmatter aliases in the resolution index |
 | ⬜ | File-tree sidebar |
 

@@ -37,10 +37,10 @@ impl VaultIndex {
 
         let query_path = Path::new(query);
         for note in &self.notes {
-            if let Some(shortest) = shortest_unique_path(note, &self.notes) {
-                if shortest == query_path || note_stem(note) == Some(query) {
-                    return Some(note.as_path());
-                }
+            if let Some(shortest) = shortest_unique_path(note, &self.notes)
+                && (shortest == query_path || note_stem(note) == Some(query))
+            {
+                return Some(note.as_path());
             }
         }
 

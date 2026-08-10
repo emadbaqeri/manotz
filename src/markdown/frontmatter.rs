@@ -4,16 +4,30 @@ pub struct Frontmatter {
 }
 
 /// Helper: Extracts text between leading `---` and ending `---` if document
-///  starts with frontmatter
+/// starts with frontmatter. Handles UTF-8 BOM (`\u{feff}`) and standalone `---` fence lines.
 fn extract_frontmatter_block(text: &str) -> Option<&str> {
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let trimmed = text.trim_start();
     if !trimmed.starts_with("---") {
         return None;
     }
 
     let rest = &trimmed[3..];
-    let end_idx = rest.find("\n---")?;
-    Some(rest[..end_idx].trim())
+    let first_line_end = rest.find('\n')?;
+    let first_line = rest[..first_line_end].trim();
+    if !first_line.is_empty() {
+        return None;
+    }
+
+    let body = &rest[first_line_end + 1..];
+    for line in body.lines() {
+        if line.trim().starts_with("---") {
+            let offset = line.as_ptr() as usize - body.as_ptr() as usize;
+            return Some(body[..offset].trim());
+        }
+    }
+
+    None
 }
 
 /// Helper: Strips trailing YAML comments (`# comment`) outside single/double quotes.
@@ -113,5 +127,21 @@ mod tests {
         let frontmatter = parse_frontmatter(content).unwrap();
 
         assert_eq!(frontmatter.aliases, vec!["TODO List", "Project #9"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_handles_utf8_bom() {
+        let content = "\u{feff}---\naliases: [TODO List]\n---\n# Notes";
+        let frontmatter = parse_frontmatter(content).unwrap();
+
+        assert_eq!(frontmatter.aliases, vec!["TODO List"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_ignores_non_fence_dashes() {
+        let content = "---\naliases: [TODO List]\n# line with --- inside\n---\n# Notes";
+        let frontmatter = parse_frontmatter(content).unwrap();
+
+        assert_eq!(frontmatter.aliases, vec!["TODO List"]);
     }
 }

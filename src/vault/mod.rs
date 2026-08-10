@@ -1,4 +1,52 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
+
+use crate::markdown::frontmatter::parse_frontmatter;
+
+#[derive(Debug, Default, Clone)]
+pub struct VaultIndex {
+    pub notes: Vec<PathBuf>,
+    // Map from alias/stem -> note path
+    aliases: HashMap<String, PathBuf>,
+}
+
+impl VaultIndex {
+    pub fn build(vault_root: &Path) -> std::io::Result<Self> {
+        let notes = discover_vault(vault_root)?;
+        let mut aliases = HashMap::new();
+
+        for note in &notes {
+            if let Ok(content) = std::fs::read_to_string(note)
+                && let Some(fm) = parse_frontmatter(&content)
+            {
+                for alias in fm.aliases {
+                    aliases.insert(alias, note.clone());
+                }
+            }
+        }
+
+        Ok(Self { notes, aliases })
+    }
+
+    pub fn resolve(&self, query: &str) -> Option<&Path> {
+        if let Some(path) = self.aliases.get(query) {
+            return Some(path.as_path());
+        }
+
+        let query_path = Path::new(query);
+        for note in &self.notes {
+            if let Some(shortest) = shortest_unique_path(note, &self.notes) {
+                if shortest == query_path || note_stem(note) == Some(query) {
+                    return Some(note.as_path());
+                }
+            }
+        }
+
+        None
+    }
+}
 
 pub fn discover_vault(vault_root: &Path) -> std::io::Result<Vec<PathBuf>> {
     let mut notes = Vec::new();
@@ -116,7 +164,7 @@ mod tests {
         sync::atomic::{AtomicU64, Ordering},
     };
 
-    use crate::vault::{discover_vault, note_stem, shortest_unique_path};
+    use crate::vault::{VaultIndex, discover_vault, note_stem, shortest_unique_path};
 
     /// Unique temp directory removed on drop — avoids fixed-path races/leftovers.
     struct TempVault {
@@ -243,5 +291,27 @@ mod tests {
             shortest_unique_path(&work_todo, &all),
             Some(PathBuf::from("work").join("todo"))
         );
+    }
+
+    #[test]
+    fn vault_index_resolves_stem_and_alias() {
+        let dir = TempVault::new("index_test");
+        let note_path = dir.path().join("todo.md");
+        fs::write(
+            &note_path,
+            "---\naliases: [Tasks, Action Items]\n---\n# TODO",
+        )
+        .unwrap();
+
+        let index = VaultIndex::build(dir.path()).unwrap();
+
+        // 1. Resolve by note stem "todo"
+        assert_eq!(index.resolve("todo"), Some(note_path.as_path()));
+        // 2. Resolve by frontmatter alias "Tasks"
+        assert_eq!(index.resolve("Tasks"), Some(note_path.as_path()));
+        // 3. Resolve by second alias "Action Items"
+        assert_eq!(index.resolve("Action Items"), Some(note_path.as_path()));
+        // 4. Non-existent query returns None
+        assert_eq!(index.resolve("Unknown"), None);
     }
 }

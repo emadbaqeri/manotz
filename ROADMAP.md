@@ -67,7 +67,7 @@ This file is the living checklist for what is shipped and what comes next.
 
 | Status | Item |
 | --- | --- |
-| ⬜ | Wikilinks: `[[Note]]`, `[[Note\|alias]]`, `[[Note#heading]]` |
+| ✅ | Wikilinks: `[[Note]]`, `[[Note\|alias]]`, `[[Note#heading]]` |
 | ⬜ | Markdown links indexed for interop |
 | ⬜ | Dangling-link highlight + follow-creates note |
 | ⬜ | Forward link index + backlinks panel |
@@ -113,7 +113,7 @@ This file is the living checklist for what is shipped and what comes next.
 
 ## Current focus
 
-**Next up:** Wikilinks parsing and resolution.
+**Next up:** Markdown links indexing for interop.
 
 Update this file when a checklist item lands. Prefer an atomic commit that only
 touches the roadmap when nothing else changes.

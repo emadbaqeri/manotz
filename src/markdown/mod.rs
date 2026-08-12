@@ -2,6 +2,7 @@ use crate::render::{Colour, Style};
 use pulldown_cmark::{Event, Parser, Tag};
 
 pub mod frontmatter;
+pub mod wikilink;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum HighlightKind {

@@ -1,8 +1,47 @@
-use crate::render::{Colour, Style};
+use crate::{
+    markdown::{link::parse_markdown_links, wikilink::parse_wikilinks},
+    render::{Colour, Style},
+};
 use pulldown_cmark::{Event, Parser, Tag};
 
 pub mod frontmatter;
+pub mod link;
 pub mod wikilink;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct NoteLink<'a> {
+    pub target: &'a str,
+    pub heading: Option<&'a str>,
+    pub display: &'a str,
+    pub span: (usize, usize),
+}
+
+pub fn extract_note_links<'a>(text: &'a str) -> Vec<NoteLink<'a>> {
+    let mut links = Vec::new();
+
+    for w in parse_wikilinks(text) {
+        links.push(NoteLink {
+            target: w.target,
+            heading: w.heading,
+            display: w.display,
+            span: w.span,
+        });
+    }
+
+    for m in parse_markdown_links(text) {
+        if !m.is_external() {
+            links.push(NoteLink {
+                target: m.dest,
+                heading: m.heading,
+                display: m.display,
+                span: m.span,
+            });
+        }
+    }
+
+    links.sort_by_key(|l| l.span.0);
+    links
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum HighlightKind {
@@ -83,7 +122,10 @@ pub fn style_for(kind: HighlightKind) -> Style {
 
 #[cfg(test)]
 mod tests {
-    use crate::{markdown::HighlightKind, render::Colour};
+    use crate::{
+        markdown::{HighlightKind, extract_note_links},
+        render::Colour,
+    };
 
     #[test]
     fn highlight_atx_heading() {
@@ -188,5 +230,22 @@ mod tests {
         assert!(!style.bold);
         assert_eq!(style.fg, Some(Colour::Rgb(100, 180, 255)));
         assert_eq!(style.bg, None);
+    }
+
+    #[test]
+    fn extract_note_links_unifies_wikilinks_and_markdown_links() {
+        let text =
+            "Start with [[Rust]] and check [Cargo](cargo.md). Skip [Web](https://rust-lang.org).";
+        let links = extract_note_links(text);
+
+        assert_eq!(links.len(), 2);
+
+        assert_eq!(links[0].target, "Rust");
+        assert_eq!(links[0].display, "Rust");
+        assert_eq!(links[0].span, (11, 19));
+
+        assert_eq!(links[1].target, "cargo.md");
+        assert_eq!(links[1].display, "Cargo");
+        assert_eq!(links[1].span, (30, 47));
     }
 }

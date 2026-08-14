@@ -38,7 +38,14 @@ impl VaultIndex {
             return opt_path.as_deref();
         }
 
-        let query_path = Path::new(query);
+        let cleaned = query.strip_prefix("./").unwrap_or(query);
+        let stem_query = cleaned.strip_suffix(".md").unwrap_or(cleaned);
+
+        if let Some(opt_path) = self.aliases.get(stem_query) {
+            return opt_path.as_deref();
+        }
+
+        let query_path = Path::new(stem_query);
         for note in &self.notes {
             if let Some(shortest) = shortest_unique_path(note, &self.notes)
                 && shortest == query_path
@@ -361,5 +368,23 @@ mod tests {
             index.resolve(personal_query.to_str().unwrap()),
             Some(personal_todo.as_path())
         );
+    }
+
+    #[test]
+    fn vault_index_resolves_markdown_link_with_extension_and_relative_prefix() {
+        let vault = TempVault::new("md_links");
+        let note_path = vault.path().join("cargo.md");
+        fs::write(&note_path, "# Cargo Note").unwrap();
+
+        let index = VaultIndex::build(vault.path()).unwrap();
+
+        // 1. Stem lookup (wikilink: [[cargo]]) -> PASSES
+        assert_eq!(index.resolve("cargo"), Some(note_path.as_path()));
+
+        // 2. Extension lookup (markdown link: [Cargo](cargo.md)) -> FAILS (RED)
+        assert_eq!(index.resolve("cargo.md"), Some(note_path.as_path()));
+
+        // 3. Relative prefix lookup (markdown link: [Cargo](./cargo.md)) -> FAILS
+        assert_eq!(index.resolve("./cargo.md"), Some(note_path.as_path()));
     }
 }

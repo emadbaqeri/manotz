@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{
     markdown::{link::parse_markdown_links, wikilink::parse_wikilinks},
     render::{Colour, Style},
@@ -10,9 +12,9 @@ pub mod wikilink;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NoteLink<'a> {
-    pub target: &'a str,
-    pub heading: Option<&'a str>,
-    pub display: &'a str,
+    pub target: Cow<'a, str>,
+    pub heading: Option<Cow<'a, str>>,
+    pub display: Cow<'a, str>,
     pub span: (usize, usize),
 }
 
@@ -21,9 +23,9 @@ pub fn extract_note_links<'a>(text: &'a str) -> Vec<NoteLink<'a>> {
 
     for w in parse_wikilinks(text) {
         links.push(NoteLink {
-            target: w.target,
-            heading: w.heading,
-            display: w.display,
+            target: Cow::Borrowed(w.target),
+            heading: w.heading.map(Cow::Borrowed),
+            display: Cow::Borrowed(w.display),
             span: w.span,
         });
     }

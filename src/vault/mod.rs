@@ -9,7 +9,7 @@ use crate::markdown::frontmatter::parse_frontmatter;
 pub struct VaultIndex {
     pub notes: Vec<PathBuf>,
     // Map from alias -> Option<note path> (None represents ambiguous duplicate alias)
-    aliases: HashMap<String, Option<PathBuf>>,
+    pub(crate) aliases: HashMap<String, Option<PathBuf>>,
 }
 
 impl VaultIndex {

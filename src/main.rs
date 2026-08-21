@@ -37,12 +37,15 @@ fn main() -> io::Result<()> {
         }
     };
 
+    let vault_root = std::env::current_dir().expect("could not resolve current directory");
+    state.vault = manotz::vault::VaultIndex::build(&vault_root).ok();
+
     let mut adapter = Adapter::default();
     let mut stdout = std::io::stdout();
 
     loop {
         let text = state.buffer.slice(0, state.buffer.len());
-        let highlights = manotz::markdown::highlight(text);
+        let highlights = manotz::markdown::highlight_with_vault(text, state.vault.as_ref());
         let grid = render(
             &state.buffer,
             &state.selections,

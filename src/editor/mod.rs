@@ -8,6 +8,7 @@ use crate::{
     render::{Viewport, byte_to_line_col},
     selection::{Selection, SelectionSet},
     text::{grapheme_len, grapheme_to_byte_offset},
+    vault::VaultIndex,
 };
 
 pub struct EditorState {
@@ -19,6 +20,7 @@ pub struct EditorState {
     pub register: Option<String>,
     pub is_dirty: bool,
     pub file_path: Option<std::path::PathBuf>,
+    pub vault: Option<VaultIndex>,
 }
 
 impl EditorState {
@@ -36,6 +38,7 @@ impl EditorState {
             register: None,
             file_path: None,
             is_dirty: false,
+            vault: None,
         }
     }
 
@@ -95,6 +98,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: true,
+                    vault: self.vault,
                 }
             }
             Action::Yank => {
@@ -119,6 +123,7 @@ impl EditorState {
                     register: Some(yanked),
                     file_path: self.file_path,
                     is_dirty: self.is_dirty,
+                    vault: self.vault,
                 }
             }
             Action::Change => {
@@ -162,6 +167,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: true,
+                    vault: self.vault,
                 }
             }
             Action::Delete => {
@@ -205,6 +211,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: true,
+                    vault: self.vault,
                 }
             }
             Action::Redo => {
@@ -253,6 +260,7 @@ impl EditorState {
                             register: self.register,
                             file_path: self.file_path,
                             is_dirty: true,
+                            vault: self.vault,
                         }
                     }
                     None => EditorState {
@@ -264,6 +272,7 @@ impl EditorState {
                         register: None,
                         file_path: self.file_path,
                         is_dirty: true,
+                        vault: self.vault,
                     },
                 }
             }
@@ -311,6 +320,7 @@ impl EditorState {
                             register: self.register,
                             file_path: self.file_path,
                             is_dirty: true,
+                            vault: self.vault,
                         }
                     }
                     None => EditorState {
@@ -322,6 +332,7 @@ impl EditorState {
                         register: None,
                         file_path: self.file_path,
                         is_dirty: self.is_dirty,
+                        vault: self.vault,
                     },
                 }
             }
@@ -375,6 +386,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: true,
+                    vault: self.vault,
                 }
             }
             Action::InsertChar(ch) => {
@@ -422,6 +434,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: true,
+                    vault: self.vault,
                 }
             }
             Action::MoveLeft => {
@@ -451,6 +464,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: self.is_dirty,
+                    vault: self.vault,
                 }
             }
             Action::MoveRight => {
@@ -482,6 +496,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: self.is_dirty,
+                    vault: self.vault,
                 }
             }
             Action::MoveUp => {
@@ -511,6 +526,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: self.is_dirty,
+                    vault: self.vault,
                 }
             }
             Action::MoveDown => {
@@ -541,6 +557,7 @@ impl EditorState {
                     register: self.register,
                     file_path: self.file_path,
                     is_dirty: self.is_dirty,
+                    vault: self.vault,
                 }
             }
             Action::EnterInsert => EditorState {
@@ -552,6 +569,7 @@ impl EditorState {
                 register: self.register,
                 file_path: self.file_path,
                 is_dirty: self.is_dirty,
+                vault: self.vault,
             },
             Action::EnterNormal => EditorState {
                 buffer: self.buffer,
@@ -562,6 +580,7 @@ impl EditorState {
                 register: self.register,
                 file_path: self.file_path,
                 is_dirty: self.is_dirty,
+                vault: self.vault,
             },
             Action::EnterSelect => EditorState {
                 buffer: self.buffer,
@@ -572,6 +591,7 @@ impl EditorState {
                 register: self.register,
                 file_path: self.file_path,
                 is_dirty: self.is_dirty,
+                vault: self.vault,
             },
             Action::Quit => self,
         }

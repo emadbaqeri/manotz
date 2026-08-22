@@ -52,6 +52,7 @@ pub enum HighlightKind {
     Bold,
     Code,
     Link,
+    DanglingLink,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -62,6 +63,13 @@ pub struct Highlight {
 }
 
 pub fn highlight(text: &str) -> Vec<Highlight> {
+    highlight_with_vault(text, None)
+}
+
+pub fn highlight_with_vault(
+    text: &str,
+    vault: Option<&crate::vault::VaultIndex>,
+) -> Vec<Highlight> {
     let mut spans = Vec::new();
 
     for (event, range) in Parser::new(text).into_offset_iter() {
@@ -94,17 +102,34 @@ pub fn highlight(text: &str) -> Vec<Highlight> {
                     kind: HighlightKind::Code,
                 });
             }
-            Event::Start(Tag::Link { .. }) => {
-                spans.push(Highlight {
-                    start: range.start,
-                    end: range.end,
-                    kind: HighlightKind::Link,
-                });
-            }
             _ => {}
         }
     }
 
+    for link in extract_note_links(text) {
+        let kind = match vault {
+            Some(v) if v.resolve(&link.target).is_none() => HighlightKind::DanglingLink,
+            _ => HighlightKind::Link,
+        };
+
+        spans.push(Highlight {
+            start: link.span.0,
+            end: link.span.1,
+            kind,
+        });
+    }
+
+    for m in parse_markdown_links(text) {
+        if m.is_external() {
+            spans.push(Highlight {
+                start: m.span.0,
+                end: m.span.1,
+                kind: HighlightKind::Link,
+            });
+        }
+    }
+
+    spans.sort_by_key(|h| h.start);
     spans
 }
 
@@ -119,6 +144,7 @@ pub fn style_for(kind: HighlightKind) -> Style {
             Some(Colour::Rgb(40, 44, 52)),
         ),
         HighlightKind::Link => Style::new(false, Some(Colour::Rgb(100, 180, 255)), None),
+        HighlightKind::DanglingLink => Style::new(false, Some(Colour::Rgb(200, 150, 100)), None),
     }
 }
 
@@ -183,6 +209,19 @@ mod tests {
 
     #[test]
     fn highlight_link() {
+        let text = "[hi](https://example.com)";
+        let spans = super::highlight(text);
+
+        assert!(
+            spans
+                .iter()
+                .any(|h| { h.kind == HighlightKind::Link && h.start == 0 && h.end == 25 }),
+            "expected Link for {text:?}, got {spans:?}"
+        );
+    }
+
+    #[test]
+    fn highlight_internal_link_without_vault_is_link() {
         let text = "[hi](note.md)";
         let spans = super::highlight(text);
 
@@ -191,6 +230,54 @@ mod tests {
                 .iter()
                 .any(|h| { h.kind == HighlightKind::Link && h.start == 0 && h.end == 13 }),
             "expected Link for {text:?}, got {spans:?}"
+        );
+    }
+
+    #[test]
+    fn highlight_wikilink_without_vault_is_link() {
+        let text = "[[note]]";
+        let spans = super::highlight(text);
+
+        assert!(
+            spans
+                .iter()
+                .any(|h| { h.kind == HighlightKind::Link && h.start == 0 && h.end == 8 }),
+            "expected Link for {text:?}, got {spans:?}"
+        );
+    }
+
+    #[test]
+    fn highlight_distinguishes_resolved_and_dangling_links() {
+        use crate::vault::VaultIndex;
+        use std::path::PathBuf;
+
+        let vault = VaultIndex {
+            notes: vec![PathBuf::from("Existing.md")],
+            ..Default::default()
+        };
+
+        let text = "Check [[Existing]], [[Dangling]], and [Existing](Existing.md) / [Dangling](Dangling.md)";
+        let spans = super::highlight_with_vault(text, Some(&vault));
+
+        let existing_wiki = spans.iter().find(|h| h.start == 6 && h.end == 18);
+        assert_eq!(
+            existing_wiki.map(|h| &h.kind),
+            Some(&super::HighlightKind::Link)
+        );
+        let dangling_wiki = spans.iter().find(|h| h.start == 20 && h.end == 32);
+        assert_eq!(
+            dangling_wiki.map(|h| &h.kind),
+            Some(&super::HighlightKind::DanglingLink)
+        );
+        let existing_md = spans.iter().find(|h| h.start == 38 && h.end == 61);
+        assert_eq!(
+            existing_md.map(|h| &h.kind),
+            Some(&super::HighlightKind::Link)
+        );
+        let dangling_md = spans.iter().find(|h| h.start == 64 && h.end == 87);
+        assert_eq!(
+            dangling_md.map(|h| &h.kind),
+            Some(&super::HighlightKind::DanglingLink)
         );
     }
 
@@ -249,5 +336,11 @@ mod tests {
         assert_eq!(links[1].target, "cargo.md");
         assert_eq!(links[1].display, "Cargo");
         assert_eq!(links[1].span, (30, 47));
+    }
+
+    #[test]
+    fn style_for_dangling_link_is_amber() {
+        let style = super::style_for(super::HighlightKind::DanglingLink);
+        assert_eq!(style.fg, Some(Colour::Rgb(200, 150, 100)));
     }
 }

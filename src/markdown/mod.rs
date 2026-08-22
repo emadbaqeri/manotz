@@ -107,12 +107,9 @@ pub fn highlight_with_vault(
     }
 
     for link in extract_note_links(text) {
-        let is_resolved = vault.is_some_and(|v| v.resolve(&link.target).is_some());
-
-        let kind = if is_resolved {
-            HighlightKind::Link
-        } else {
-            HighlightKind::DanglingLink
+        let kind = match vault {
+            Some(v) if v.resolve(&link.target).is_none() => HighlightKind::DanglingLink,
+            _ => HighlightKind::Link,
         };
 
         spans.push(Highlight {
@@ -224,7 +221,33 @@ mod tests {
     }
 
     #[test]
-    fn highlight_distinguishes_resolved_and_dangling_wikilinks() {
+    fn highlight_internal_link_without_vault_is_link() {
+        let text = "[hi](note.md)";
+        let spans = super::highlight(text);
+
+        assert!(
+            spans
+                .iter()
+                .any(|h| { h.kind == HighlightKind::Link && h.start == 0 && h.end == 13 }),
+            "expected Link for {text:?}, got {spans:?}"
+        );
+    }
+
+    #[test]
+    fn highlight_wikilink_without_vault_is_link() {
+        let text = "[[note]]";
+        let spans = super::highlight(text);
+
+        assert!(
+            spans
+                .iter()
+                .any(|h| { h.kind == HighlightKind::Link && h.start == 0 && h.end == 8 }),
+            "expected Link for {text:?}, got {spans:?}"
+        );
+    }
+
+    #[test]
+    fn highlight_distinguishes_resolved_and_dangling_links() {
         use crate::vault::VaultIndex;
         use std::path::PathBuf;
 
@@ -233,17 +256,27 @@ mod tests {
             ..Default::default()
         };
 
-        let text = "Check [[Existing]] and [[Dangling]]";
+        let text = "Check [[Existing]], [[Dangling]], and [Existing](Existing.md) / [Dangling](Dangling.md)";
         let spans = super::highlight_with_vault(text, Some(&vault));
 
-        let existing_highlight = spans.iter().find(|h| h.start == 6 && h.end == 18);
+        let existing_wiki = spans.iter().find(|h| h.start == 6 && h.end == 18);
         assert_eq!(
-            existing_highlight.map(|h| &h.kind),
+            existing_wiki.map(|h| &h.kind),
             Some(&super::HighlightKind::Link)
         );
-        let dangling_highlight = spans.iter().find(|h| h.start == 23 && h.end == 35);
+        let dangling_wiki = spans.iter().find(|h| h.start == 20 && h.end == 32);
         assert_eq!(
-            dangling_highlight.map(|h| &h.kind),
+            dangling_wiki.map(|h| &h.kind),
+            Some(&super::HighlightKind::DanglingLink)
+        );
+        let existing_md = spans.iter().find(|h| h.start == 38 && h.end == 61);
+        assert_eq!(
+            existing_md.map(|h| &h.kind),
+            Some(&super::HighlightKind::Link)
+        );
+        let dangling_md = spans.iter().find(|h| h.start == 64 && h.end == 87);
+        assert_eq!(
+            dangling_md.map(|h| &h.kind),
             Some(&super::HighlightKind::DanglingLink)
         );
     }

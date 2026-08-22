@@ -37,8 +37,9 @@ fn main() -> io::Result<()> {
         }
     };
 
-    let vault_root = std::env::current_dir().expect("could not resolve current directory");
-    state.vault = manotz::vault::VaultIndex::build(&vault_root).ok();
+    state.vault = std::env::current_dir()
+        .ok()
+        .and_then(|vault_root| manotz::vault::VaultIndex::build(&vault_root).ok());
 
     let mut adapter = Adapter::default();
     let mut stdout = std::io::stdout();

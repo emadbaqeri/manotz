@@ -5,7 +5,7 @@ Terminal-first knowledge management editor in Rust. Helix/Kakoune selection-firs
 
 ## Current state
 - **Milestone**: §6 in progress — Dangling link highlighting & vault-aware link resolution
-- **Tests**: 181 lib unit tests + 12 MSRV; all green
+- **Tests**: 183 lib unit tests + 12 MSRV; all green
 - **Done**: `HighlightKind::DanglingLink`, `style_for(DanglingLink)` (amber: 200, 150, 100), `highlight_with_vault` (wikilinks + internal/external markdown links resolved against `VaultIndex`)
 
 ### Shipped earlier (still true)
@@ -20,12 +20,12 @@ Terminal-first knowledge management editor in Rust. Helix/Kakoune selection-firs
   - `style_for(DanglingLink) -> Style` (amber `Colour::Rgb(200, 150, 100)`)
   - `pub fn highlight_with_vault(text: &str, vault: Option<&VaultIndex>) -> Vec<Highlight>`
     - Integrates standard markdown elements (`Heading`, `Emphasis`, `Bold`, `Code`)
-    - Integrates `extract_note_links(text)` checking `vault.is_some_and(|v| v.resolve(&target).is_some())`
+    - Integrates `extract_note_links(text)`; links remain `Link` without a vault, and unresolved targets become `DanglingLink` when a vault is available
     - Integrates external markdown links from `parse_markdown_links(text)` as `HighlightKind::Link`
   - `pub fn highlight(text: &str)` defaults to `highlight_with_vault(text, None)`
 - `src/vault/mod.rs`:
   - `pub(crate) aliases` on `VaultIndex` to allow crate-internal construction/testing
-- Tests: added `style_for_dangling_link_is_amber` and `highlight_distinguishes_resolved_and_dangling_wikilinks` (181 unit tests passing)
+- Tests: added `style_for_dangling_link_is_amber`, `highlight_internal_link_without_vault_is_link`, `highlight_wikilink_without_vault_is_link`, and `highlight_distinguishes_resolved_and_dangling_links` (183 unit tests passing)
 
 ### Next session — pick up here
 1. ~~**Wire `VaultIndex` into `main.rs` live loop**~~ ✅ (PR #36)
